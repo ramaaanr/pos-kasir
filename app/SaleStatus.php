@@ -1,8 +1,10 @@
 <?php
 
-namespace App;
+namespace App\Enums;
 
-enum SaleStatus
+enum SaleStatus: string
 {
-    //
+    case UTANG = 'utang';
+    case SEBAGIAN = 'sebagian';
+    case LUNAS = 'lunas';
 }
