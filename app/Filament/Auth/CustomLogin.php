@@ -12,4 +12,17 @@ class CustomLogin extends Login
     {
         return 'filament.admin.login';
     }
+
+    public function form(\Filament\Forms\Form $form): \Filament\Forms\Form
+    {
+        return $form
+            ->schema([
+                $this->getEmailFormComponent()
+                    ->prefixIcon('lucide-mail'),
+                $this->getPasswordFormComponent()
+                    ->prefixIcon('lucide-lock'),
+                $this->getRememberFormComponent(),
+            ])
+            ->statePath('data');
+    }
 }
