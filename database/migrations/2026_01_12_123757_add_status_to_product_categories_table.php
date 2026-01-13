@@ -11,11 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('product_categories', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->softDeletes();
-            $table->timestamps();
+        Schema::table('product_categories', function (Blueprint $table) {
+            $table->boolean('is_active')->default(true)->after('name');
         });
     }
 
@@ -24,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('product_categories');
+        Schema::table('product_categories', function (Blueprint $table) {
+            $table->dropColumn('is_active');
+        });
     }
 };

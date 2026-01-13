@@ -21,6 +21,7 @@
             title="Master Kategori" 
             icon="layout-grid" 
             color="pink" 
+            href="{{ route('product-categories.index') }}"
             delay="delay-200" 
         />
         <x-admin.card 
