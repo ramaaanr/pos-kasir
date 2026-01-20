@@ -15,6 +15,7 @@
             title="Master Produk" 
             icon="package" 
             color="cyan" 
+            href="{{ route('products.index') }}"
             delay="delay-100" 
         />
         <x-admin.card 
@@ -28,14 +29,22 @@
             title="Stok Masuk" 
             icon="truck" 
             color="emerald" 
+            href="{{ route('stok-masuk.index') }}"
             delay="delay-300" 
         />
         <x-admin.card 
             title="Laporan" 
             icon="bar-chart-3" 
-            color="amber" 
             disabled="true" 
             delay="delay-400" 
+        />
+        <x-admin.card 
+            title="Stock Adjustment" 
+            icon="clipboard-edit" 
+            color="rose" 
+            subtitle="Koreksi stok rusak/hilang"
+            href="{{ route('admin.stock-adjustments.index') }}"
+            delay="delay-500" 
         />
     </div>
 

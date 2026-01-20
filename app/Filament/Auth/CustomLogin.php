@@ -25,4 +25,9 @@ class CustomLogin extends Login
             ])
             ->statePath('data');
     }
+
+    public function getRedirectUrl(): string
+    {
+        return route('dashboard');
+    }
 }
