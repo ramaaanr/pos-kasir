@@ -1,5 +1,5 @@
 <x-layouts.admin title="Dashboard Utama" subtitle="Ringkasan performa dan akses cepat fitur">
-    
+
     {{-- Welcome Message --}}
     <div class="mb-8 animate-fade-in opacity-0">
         <h2 class="text-2xl font-black text-foreground flex items-center gap-3">
@@ -11,63 +11,38 @@
 
     {{-- Feature Cards Grid --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        <x-admin.card 
-            title="Master Produk" 
-            icon="package" 
-            color="cyan" 
+        <x-admin.card
+            title="Master Produk"
+            icon="package"
+            color="cyan"
             href="{{ route('products.index') }}"
-            delay="delay-100" 
-        />
-        <x-admin.card 
-            title="Master Kategori" 
-            icon="layout-grid" 
-            color="pink" 
+            delay="delay-100" />
+        <x-admin.card
+            title="Master Kategori"
+            icon="layout-grid"
+            color="pink"
             href="{{ route('product-categories.index') }}"
-            delay="delay-200" 
-        />
-        <x-admin.card 
-            title="Stok Masuk" 
-            icon="truck" 
-            color="emerald" 
+            delay="delay-200" />
+        <x-admin.card
+            title="Stok Masuk"
+            icon="truck"
+            color="emerald"
             href="{{ route('stok-masuk.index') }}"
-            delay="delay-300" 
-        />
-        <x-admin.card 
-            title="Laporan" 
-            icon="bar-chart-3" 
-            disabled="true" 
-            delay="delay-400" 
-        />
-        <x-admin.card 
-            title="Stock Adjustment" 
-            icon="clipboard-edit" 
-            color="rose" 
+            delay="delay-300" />
+        <x-admin.card
+            title="Laporan"
+            icon="bar-chart-3"
+            disabled="true"
+            delay="delay-400" />
+        <x-admin.card
+            title="Stock Adjustment"
+            icon="clipboard-edit"
+            color="rose"
             subtitle="Koreksi stok rusak/hilang"
             href="{{ route('admin.stock-adjustments.index') }}"
-            delay="delay-500" 
-        />
+            delay="delay-500" />
     </div>
 
-    {{-- Quick Stats Section --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <x-admin.stat-card 
-            label="Total Pengguna" 
-            value="24" 
-            icon="users" 
-            color="role-admin" 
-        />
-        <x-admin.stat-card 
-            label="Produk Aktif" 
-            value="156" 
-            icon="package" 
-            color="role-kasir" 
-        />
-        <x-admin.stat-card 
-            label="Uptime Sistem" 
-            value="89%" 
-            icon="power" 
-            color="role-owner" 
-        />
-    </div>
+
 
 </x-layouts.admin>

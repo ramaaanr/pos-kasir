@@ -100,7 +100,7 @@ class ProductList extends Component
         $this->kode_produk = $barcode;
     }
 
-    public function openModal(?int $id = null, ProductService $service = null)
+    public function openModal(?int $id = null, ?ProductService $service = null)
     {
         $this->resetValidation();
         if ($id) {
@@ -196,7 +196,9 @@ class ProductList extends Component
 
     public function openDetailModal(int $id)
     {
-        $this->selectedProduct = \App\Models\Product::with(['category', 'units'])->findOrFail($id);
+        $this->selectedProduct = \App\Models\Product::with(['category', 'units'])
+            ->withSum('batches', 'qty_sisa_base')
+            ->findOrFail($id);
         $this->showDetailModal = true;
     }
 
@@ -230,6 +232,8 @@ class ProductList extends Component
             $this->selectedProductId = null;
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Produk berhasil dihapus']);
         } catch (\Exception $e) {
+            $this->showDeleteModal = false;
+            $this->selectedProductId = null;
             $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
         }
     }

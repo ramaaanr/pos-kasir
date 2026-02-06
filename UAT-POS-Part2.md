@@ -42,14 +42,14 @@
 
 ### Actual Result:
 ```
-Konfirmasi muncul? ⬜ Yes ⬜ No
-Produk terhapus? ⬜ Yes ⬜ No
-Masih ada di DB? ⬜ Yes ⬜ No (cek dengan admin tools)
+Konfirmasi muncul? ⬜ Yes 
+Produk terhapus? ⬜ Yes 
+Masih ada di DB? ⬜ Yes with deleted_at filled
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass
 **Screenshot:** ⬜ Attached  
-**Notes:** _____________________________________________________
+**Notes:** Terdapat Modal konfirmasi dengan teks: Data yang dihapus masih dapat dipulihkan oleh administrator. Tolong dihapus cukup sisahkan teks konfirmasi saja 
 
 ---
 
@@ -72,13 +72,13 @@ Masih ada di DB? ⬜ Yes ⬜ No (cek dengan admin tools)
 
 ### Actual Result:
 ```
-Error message: ________________________________________________
-Produk terhapus? ⬜ Yes ⬜ No (harus No)
+Error message: Erro di bagian stok masin
+Produk terhapus? ⬜ Yes 
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** Pass
 **Screenshot:** ⬜ Attached  
-**Notes:** _____________________________________________________
+**Notes:** Cek Jika Produk sudah ada transaksi/batch tidak bisa dihapus
 
 ---
 
@@ -99,12 +99,12 @@ Produk terhapus? ⬜ Yes ⬜ No (harus No)
 
 ### Actual Result:
 ```
-Status berubah? ⬜ Yes ⬜ No
-Muncul di POS? ⬜ Yes ⬜ No (harus No)
-Admin bisa lihat? ⬜ Yes ⬜ No (harus Yes dengan filter)
+Status berubah? ⬜ Yes 
+Muncul di POS? ⬜ No (harus No)
+Admin bisa lihat? ⬜ Yes 
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -132,7 +132,7 @@ Produk yang tampil: ___________________________________________
 Search by kode working? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -159,7 +159,7 @@ Filter kategori lain: _______ produk
 Filter Semua: _______ produk
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -184,7 +184,7 @@ Nonaktif: _______ produk
 Semua: _______ produk
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -208,14 +208,14 @@ Semua: _______ produk
 
 ### Actual Result:
 ```
-Info yang tampil: _____________________________________________
+Info yang tampil: semua terkeciali totalk stok
 _________________________________________________________________
-Stok total correct? ⬜ Yes ⬜ No
+Stok total correct? ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass
 **Screenshot:** ⬜ Attached  
-**Notes:** _____________________________________________________
+**Notes:** Tamabhakn total stok pada modal detail produk
 
 ---
 
@@ -240,7 +240,7 @@ Barcode readable: ⬜ Yes ⬜ No
 Info lengkap: ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** Pass
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -266,9 +266,40 @@ Urutan: ⬜ Terbaru ⬜ Terlama
 Info lengkap? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
+
+---
+
+
+## UAT-PROD-016: View Product Action
+**Priority:** Low | **Role:** Admin
+
+### Test Steps:
+1. Tekan Button Aksi
+
+### Expected Result:
+- Tampil Detail Produk
+Edit Produk
+Riwayat
+Nonaktifkan
+Cetak Barcode
+Hapus
+
+### Actual Result:
+```
+List tampil sempurna
+```
+
+**Status:** ⬜ Pass
+**Screenshot:** ⬜ Attached  
+**Notes:** Ada bugs dimana step sebagai berikut
+1. path /products diakses 
+2. ketika aksi ditekan maka list aksi akan muncul
+3. search products
+4. data terfilter
+5. pada table ketika user menekan aksi maka list aksi tidak akan muncul terkecuali data paling atas
 
 ---
 
@@ -291,7 +322,6 @@ Info lengkap? ⬜ Yes ⬜ No
   - Harga Beli
   - Harga Jual
   - Tanggal Masuk
-  - Tanggal Kadaluarsa (jika ada)
   - Aksi
 - Tampil tombol "Tambah Stok Masuk"
 - Filter & search berfungsi

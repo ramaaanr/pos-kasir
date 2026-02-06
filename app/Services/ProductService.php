@@ -244,7 +244,12 @@ class ProductService
     {
         return DB::transaction(function () use ($id) {
             $product = Product::findOrFail($id);
-            
+
+            // Check if product has batches
+            if ($product->batches()->exists()) {
+                throw new \Exception("Produk tidak dapat dihapus karena sudah memiliki transaksi/batch");
+            }
+
             ProductLog::create([
                 'product_id' => $product->id,
                 'user_id' => Auth::id(),
