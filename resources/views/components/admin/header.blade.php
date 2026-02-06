@@ -25,6 +25,30 @@
                 </div>
             </div>
 
+            {{-- Center: Navigation Menu --}}
+            <nav class="hidden md:flex items-center gap-1">
+                <a href="{{ route('products.index') }}" 
+                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('products.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                    <x-lucide-package class="w-4 h-4 inline-block mr-1" />
+                    Produk
+                </a>
+                <a href="{{ route('product-categories.index') }}" 
+                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('product-categories.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                    <x-lucide-layout-grid class="w-4 h-4 inline-block mr-1" />
+                    Kategori
+                </a>
+                <a href="{{ route('stok-masuk.index') }}" 
+                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('stok-masuk.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                    <x-lucide-truck class="w-4 h-4 inline-block mr-1" />
+                    Stok Masuk
+                </a>
+                <a href="{{ route('admin.stock-adjustments.index') }}" 
+                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.stock-adjustments.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                    <x-lucide-clipboard-edit class="w-4 h-4 inline-block mr-1" />
+                    Stock Adjustment
+                </a>
+            </nav>
+
             {{-- Right Side: User Info --}}
             <div class="flex items-center gap-2 sm:gap-4">
                 <div class="hidden sm:flex flex-col items-end">
@@ -36,7 +60,7 @@
                 
                 <div class="h-8 w-px bg-border/50 mx-2 hidden sm:block"></div>
                 
-                <form action="#" method="POST" class="inline-block">
+                <form action="{{ route('filament.admin.auth.logout') }}" method="POST" class="inline-block">
                     @csrf
                     <button type="submit" class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/5 rounded-lg border border-transparent hover:border-destructive/20 transition-all duration-200">
                         <x-lucide-log-out class="w-4 h-4" />

@@ -53,8 +53,8 @@
                     </select>
                 </div>
 
-                @if($search || $category_id !== 'all' || $status !== 'all')
-                    <button wire:click="$set('search', ''); $set('category_id', 'all'); $set('status', 'all')" class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                @if($search || $category_id !== 'all' || $status !== 'all' || $sortBy !== 'created_at')
+                    <button wire:click="$set('search', ''); $set('category_id', 'all'); $set('status', 'all'); $set('sortBy', 'created_at'); $set('sortDirection', 'desc')" class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                         Reset
                     </button>
                 @endif
@@ -68,23 +68,75 @@
             <table class="w-full text-sm text-left">
                 <thead>
                     <tr class="border-b border-border bg-muted/30">
-                        <th class="px-4 py-3 font-semibold text-muted-foreground">Produk</th>
-                        <th class="px-4 py-3 font-semibold text-muted-foreground">Kategori</th>
-                        <th class="px-4 py-3 font-semibold text-muted-foreground">Barcode</th>
-                        <th class="px-6 py-3 font-semibold text-muted-foreground text-right">Harga Beli</th>
-                        <th class="px-6 py-3 font-semibold text-muted-foreground text-right">Harga Jual</th>
+                        <th wire:click="sort('nama')" class="px-4 py-3 font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors group">
+                            <div class="flex items-center gap-2">
+                                Produk
+                                @if($sortBy === 'nama')
+                                    @if($sortDirection === 'asc') <x-lucide-chevron-up class="h-4 w-4 text-primary" /> @else <x-lucide-chevron-down class="h-4 w-4 text-primary" /> @endif
+                                @else <x-lucide-chevrons-up-down class="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" /> @endif
+                            </div>
+                        </th>
+                        <th wire:click="sort('category_name')" class="px-4 py-3 font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors group">
+                            <div class="flex items-center gap-2">
+                                Kategori
+                                @if($sortBy === 'category_name')
+                                    @if($sortDirection === 'asc') <x-lucide-chevron-up class="h-4 w-4 text-primary" /> @else <x-lucide-chevron-down class="h-4 w-4 text-primary" /> @endif
+                                @else <x-lucide-chevrons-up-down class="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" /> @endif
+                            </div>
+                        </th>
+                        <th wire:click="sort('kode_produk')" class="px-4 py-3 font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors group">
+                            <div class="flex items-center gap-2">
+                                Barcode
+                                @if($sortBy === 'kode_produk')
+                                    @if($sortDirection === 'asc') <x-lucide-chevron-up class="h-4 w-4 text-primary" /> @else <x-lucide-chevron-down class="h-4 w-4 text-primary" /> @endif
+                                @else <x-lucide-chevrons-up-down class="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" /> @endif
+                            </div>
+                        </th>
+                        <th wire:click="sort('harga_beli_default')" class="px-6 py-3 font-semibold text-muted-foreground text-right cursor-pointer hover:text-foreground transition-colors group">
+                            <div class="flex items-center justify-end gap-2">
+                                Harga Beli
+                                @if($sortBy === 'harga_beli_default')
+                                    @if($sortDirection === 'asc') <x-lucide-chevron-up class="h-4 w-4 text-primary" /> @else <x-lucide-chevron-down class="h-4 w-4 text-primary" /> @endif
+                                @else <x-lucide-chevrons-up-down class="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" /> @endif
+                            </div>
+                        </th>
+                        <th wire:click="sort('harga_jual_default')" class="px-6 py-3 font-semibold text-muted-foreground text-right cursor-pointer hover:text-foreground transition-colors group">
+                            <div class="flex items-center justify-end gap-2">
+                                Harga Jual
+                                @if($sortBy === 'harga_jual_default')
+                                    @if($sortDirection === 'asc') <x-lucide-chevron-up class="h-4 w-4 text-primary" /> @else <x-lucide-chevron-down class="h-4 w-4 text-primary" /> @endif
+                                @else <x-lucide-chevrons-up-down class="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" /> @endif
+                            </div>
+                        </th>
+                        <th wire:click="sort('stok')" class="px-4 py-3 font-semibold text-muted-foreground text-center cursor-pointer hover:text-foreground transition-colors group">
+                            <div class="flex items-center justify-center gap-2">
+                                Stok
+                                @if($sortBy === 'stok')
+                                    @if($sortDirection === 'asc') <x-lucide-chevron-up class="h-4 w-4 text-primary" /> @else <x-lucide-chevron-down class="h-4 w-4 text-primary" /> @endif
+                                @else <x-lucide-chevrons-up-down class="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" /> @endif
+                            </div>
+                        </th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground text-center">Status</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground text-right w-[80px]">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-border">
+                <tbody class="divide-y divide-border relative">
+                    {{-- Loading Overlay --}}
+                    <tr wire:loading class="absolute inset-0 z-50">
+                        <td colspan="8" class="p-0 border-none">
+                            <div class="absolute inset-0 bg-background/50 backdrop-blur-[1px] flex flex-col items-center justify-center">
+                                <x-lucide-loader-2 class="h-8 w-8 animate-spin text-primary" />
+                                <span class="text-sm font-medium text-muted-foreground mt-2">Memuat data...</span>
+                            </div>
+                        </td>
+                    </tr>
                     @forelse($products as $product)
                         <tr class="hover:bg-muted/50 transition-colors group">
                             <td class="px-4 py-4 font-medium text-foreground">
                                 {{ $product->nama }}
                             </td>
                             <td class="px-4 py-4 text-muted-foreground">
-                                {{ $product->category->name }}
+                                {{ $product->category->name ?? 'Tanpa Kategori' }}
                             </td>
                             <td class="px-4 py-4 font-mono text-xs text-muted-foreground uppercase">
                                 {{ $product->kode_produk }}
@@ -94,6 +146,11 @@
                             </td>
                             <td class="px-6 py-4 text-right font-bold text-primary">
                                 Rp {{ number_format($product->harga_jual_default, 0, ',', '.') }}
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <span class="inline-flex items-center px-2 py-1 rounded-lg bg-orange-500/10 text-orange-600 font-bold text-xs border border-orange-500/20">
+                                    {{ (float)($product->batches_sum_qty_sisa_base ?? 0) }} {{ $product->base_unit }}
+                                </span>
                             </td>
                             <td class="px-4 py-4 text-center">
                                 @if($product->is_active)
@@ -540,7 +597,7 @@
                                         </div>
                                         <div class="flex justify-between items-center py-2 border-b border-border/50">
                                             <span class="text-sm text-muted-foreground">Kategori</span>
-                                            <span class="text-sm font-semibold">{{ $selectedProduct->category->name }}</span>
+                                            <span class="text-sm font-semibold">{{ $selectedProduct->category->name ?? 'Tanpa Kategori' }}</span>
                                         </div>
                                         <div class="flex justify-between items-center py-2 border-b border-border/50">
                                             <span class="text-sm text-muted-foreground">Base Unit</span>

@@ -154,6 +154,11 @@ class ProductCategoryService
         return DB::transaction(function () use ($id) {
             $category = ProductCategory::findOrFail($id);
             
+            // Check if there are any products in this category
+            if ($category->products()->exists()) {
+                throw new \Exception('Kategori tidak dapat dihapus karena masih memiliki produk');
+            }
+
             ProductCategoryLog::create([
                 'category_id' => $category->id,
                 'action' => 'delete',

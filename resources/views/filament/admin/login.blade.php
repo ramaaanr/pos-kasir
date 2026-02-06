@@ -1,5 +1,8 @@
 <div class="min-h-screen flex items-start justify-center bg-[#f7f8fa] p-4 pt-12 md:pt-20 relative overflow-hidden">
     <x-filament-panels::layout.base :livewire="$this">
+        @livewireStyles
+        @filamentStyles
+        
         <!-- Background decoration -->
         <div class="absolute inset-0 overflow-hidden pointer-events-none">
             <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl"></div>
@@ -36,5 +39,8 @@
                 &copy; {{ date('Y') }} POS System &bull; Fast & Secure
             </div>
         </div>
+        @livewire('notifications')
+        @livewireScripts
+        @filamentScripts
     </x-filament-panels::layout.base>
 </div>

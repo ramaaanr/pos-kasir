@@ -17,6 +17,8 @@ class ProductList extends Component
     public $search = '';
     public $category_id = 'all';
     public $status = 'all';
+    public $sortBy = 'created_at';
+    public $sortDirection = 'desc';
     public $perPage = 10;
 
     // Modal State
@@ -44,6 +46,8 @@ class ProductList extends Component
         'search' => ['except' => ''],
         'category_id' => ['except' => 'all'],
         'status' => ['except' => 'all'],
+        'sortBy' => ['except' => 'created_at'],
+        'sortDirection' => ['except' => 'desc'],
     ];
 
     public function updatedHargaBeli()
@@ -59,6 +63,16 @@ class ProductList extends Component
     public function updatedHargaJual()
     {
         $this->calculateMargin();
+    }
+
+    public function sort($field)
+    {
+        if ($this->sortBy === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortBy = $field;
+            $this->sortDirection = 'asc';
+        }
     }
 
     private function calculateHargaJual()
@@ -226,6 +240,8 @@ class ProductList extends Component
             'search' => $this->search,
             'category_id' => $this->category_id,
             'status' => $this->status,
+            'sort_by' => $this->sortBy,
+            'sort_direction' => $this->sortDirection,
         ];
 
         return view('livewire.product.product-list', [

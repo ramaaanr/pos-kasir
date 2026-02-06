@@ -47,7 +47,7 @@ class CategoryList extends Component
         $this->resetPage();
     }
 
-    public function sortBy($field)
+    public function sort($field)
     {
         if ($this->sortBy === $field) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';

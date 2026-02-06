@@ -274,21 +274,37 @@
                 <thead>
                     <tr class="border-b border-border bg-muted/30">
                         <th 
-                            wire:click="sortBy('name')"
+                            wire:click="sort('name')"
                             class="px-4 py-3 text-left font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors group"
                         >
                             <div class="flex items-center gap-2">
                                 Nama Kategori
-                                <x-lucide-arrow-up-down class="h-3 w-3 opacity-0 group-hover:opacity-100 {{ $sortBy === 'name' ? 'opacity-100 text-primary' : '' }}" />
+                                @if($sortBy === 'name')
+                                    @if($sortDirection === 'asc')
+                                        <x-lucide-chevron-up class="h-4 w-4 text-primary" />
+                                    @else
+                                        <x-lucide-chevron-down class="h-4 w-4 text-primary" />
+                                    @endif
+                                @else
+                                    <x-lucide-chevrons-up-down class="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                                @endif
                             </div>
                         </th>
                         <th 
-                            wire:click="sortBy('products_count')"
+                            wire:click="sort('products_count')"
                             class="px-4 py-3 text-center font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors group"
                         >
                             <div class="flex items-center justify-center gap-2">
                                 Jumlah Produk
-                                <x-lucide-arrow-up-down class="h-3 w-3 opacity-0 group-hover:opacity-100 {{ $sortBy === 'products_count' ? 'opacity-100 text-primary' : '' }}" />
+                                @if($sortBy === 'products_count')
+                                    @if($sortDirection === 'asc')
+                                        <x-lucide-chevron-up class="h-4 w-4 text-primary" />
+                                    @else
+                                        <x-lucide-chevron-down class="h-4 w-4 text-primary" />
+                                    @endif
+                                @else
+                                    <x-lucide-chevrons-up-down class="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                                @endif
                             </div>
                         </th>
                         <th class="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
@@ -359,7 +375,9 @@
                                             <button 
                                                 wire:click="confirmDelete({{ $category->id }})"
                                                 @click="open = false"
-                                                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-red-500/10 transition-colors text-left"
+                                                @if($category->products_count > 0) disabled @endif
+                                                class="flex w-full items-center gap-2 px-4 py-2 text-sm {{ $category->products_count > 0 ? 'text-muted-foreground opacity-50 cursor-not-allowed' : 'text-destructive hover:bg-red-500/10' }} transition-colors text-left"
+                                                @if($category->products_count > 0) title="Kategori ini tidak dapat dihapus karena memiliki produk" @endif
                                             >
                                                 <x-lucide-trash-2 class="h-4 w-4" />
                                                 Hapus

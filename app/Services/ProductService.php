@@ -17,6 +17,7 @@ class ProductService
     {
         return Product::query()
             ->with(['category'])
+            ->withSum('batches', 'qty_sisa_base')
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->search($search);
             })
@@ -32,7 +33,21 @@ class ProductService
                     $query->where('is_active', false);
                 }
             })
-            ->latest()
+            ->when($filters['sort_by'] ?? null, function ($query, $sortBy) use ($filters) {
+                $direction = $filters['sort_direction'] ?? 'asc';
+                
+                if ($sortBy === 'category_name') {
+                    $query->join('product_categories', 'products.category_id', '=', 'product_categories.id')
+                        ->orderBy('product_categories.name', $direction)
+                        ->select('products.*');
+                } elseif ($sortBy === 'stok') {
+                    $query->orderBy('batches_sum_qty_sisa_base', $direction);
+                } else {
+                    $query->orderBy($sortBy, $direction);
+                }
+            }, function ($query) {
+                $query->latest();
+            })
             ->paginate($perPage)
             ->withQueryString();
     }
