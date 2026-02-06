@@ -89,6 +89,12 @@ class ProductBatchService
             $qty_input = $data['qty_input'];
             $qty_masuk_base = (int)round($qty_input * $multiplier);
 
+            $oldData = [
+                'harga_beli' => (float)$batch->harga_beli_per_unit,
+                'harga_jual' => (float)$batch->harga_jual_per_unit,
+                'tanggal_masuk' => $batch->tanggal_masuk->format('Y-m-d'),
+            ];
+
             $batch->update([
                 'product_id' => $product->id,
                 'harga_beli_per_unit' => $data['harga_beli_per_base'],
@@ -97,9 +103,23 @@ class ProductBatchService
                 'qty_sisa_base' => $qty_masuk_base,
                 'tanggal_masuk' => $data['tanggal_masuk'],
             ]);
-            
+
+            $newData = [
+                'harga_beli' => (float)$data['harga_beli_per_base'],
+                'harga_jual' => (float)$data['harga_jual_per_base'],
+                'tanggal_masuk' => $data['tanggal_masuk'],
+            ];
+
+            $changes = [];
+            foreach ($oldData as $key => $value) {
+                if ($value != $newData[$key]) {
+                    $changes['old'][$key] = $value;
+                    $changes['new'][$key] = $newData[$key];
+                }
+            }
+
             // Log Update if qty changed or just general update
-            if ($oldQty !== $qty_masuk_base) {
+            if ($oldQty !== $qty_masuk_base || !empty($changes)) {
                 \App\Models\ProductBatchLog::create([
                     'product_batch_id' => $batch->id,
                     'user_id' => auth()->id(),
@@ -107,17 +127,8 @@ class ProductBatchService
                     'qty_change' => $qty_masuk_base - $oldQty,
                     'qty_before' => $oldQty,
                     'qty_after' => $qty_masuk_base,
-                    'description' => 'Batch quantity updated via Edit form',
-                ]);
-            } else {
-                 \App\Models\ProductBatchLog::create([
-                    'product_batch_id' => $batch->id,
-                    'user_id' => auth()->id(),
-                    'action' => 'updated',
-                    'qty_change' => 0,
-                    'qty_before' => $qty_masuk_base,
-                    'qty_after' => $qty_masuk_base,
-                    'description' => 'Batch details updated',
+                    'description' => $oldQty !== $qty_masuk_base ? 'Batch quantity updated via Edit form' : 'Batch details updated',
+                    'changes' => !empty($changes) ? $changes : null,
                 ]);
             }
 

@@ -333,7 +333,7 @@ Kolom yang ada: _______________________________________________
 _________________________________________________________________
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -370,7 +370,7 @@ Qty Awal: _______ | Qty Sisa: _______
 Match expected? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -396,7 +396,7 @@ Tanggal Kadaluarsa tersimpan: _________________________________
 Format date correct? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Blocked  
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -418,13 +418,13 @@ Format date correct? ⬜ Yes ⬜ No
 
 ### Actual Result:
 ```
-Error message: ________________________________________________
-Data tersimpan? ⬜ Yes ⬜ No (harus No)
+Error message: The qty masuk field must be at least 1.
+Data tersimpan? No (harus No)
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** Partial 
 **Screenshot:** ⬜ Attached  
-**Notes:** _____________________________________________________
+**Notes:** sesuaikan pesan error jadi bahasa indo seperti "Qty harus lebih dari 0"
 
 ---
 
@@ -448,13 +448,32 @@ Data tersimpan? ⬜ Yes ⬜ No (harus No)
 
 ### Actual Result:
 ```
-Field yang bisa diubah: _______________________________________
-Harga ter-update? ⬜ Yes ⬜ No
+Field yang bisa diubah: Harga dan Tanggal Masuk
+Harga ter-update? ⬜ Yes
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ partial 
 **Screenshot:** ⬜ Attached  
-**Notes:** _____________________________________________________
+**Notes:** Ketika harga berubah seharusnya juga tercatat di product bathc logs tapi ternyata table dri product bathc logs tidak bisa menyimpan perubahan harga dant anggal untuk product batch logs tolong sesuaikan lagi tablenya, perbaiki service dan ui perubahan batch logsnya
+```
+CREATE TABLE `product_batch_logs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `product_batch_id` bigint unsigned NOT NULL,
+  `user_id` bigint unsigned NOT NULL,
+  `action` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `qty_change` int NOT NULL,
+  `qty_before` int NOT NULL,
+  `qty_after` int NOT NULL,
+  `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `product_batch_logs_product_batch_id_foreign` (`product_batch_id`),
+  KEY `product_batch_logs_user_id_foreign` (`user_id`),
+  CONSTRAINT `product_batch_logs_product_batch_id_foreign` FOREIGN KEY (`product_batch_id`) REFERENCES `product_batches` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `product_batch_logs_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+```
 
 ---
 
@@ -585,13 +604,12 @@ Semua batch dari Indomie? ⬜ Yes ⬜ No
 
 ### Actual Result:
 ```
-Info yang ditampilkan: ________________________________________
-_________________________________________________________________
+Info yang ditampilkan:Lengkap sesuai Expected Result
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** Partial
 **Screenshot:** ⬜ Attached  
-**Notes:** _____________________________________________________
+**Notes:** Saya ingin menambahkan Product Code di bawah tulisan nama produk agar mendapatkan informasi kode produknya
 
 ---
 

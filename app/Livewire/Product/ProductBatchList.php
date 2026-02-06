@@ -214,6 +214,8 @@ class ProductBatchList extends Component
             'harga_jual' => 'required|numeric|min:0',
             'qty_masuk' => 'required|integer|min:1',
             'tanggal_masuk' => 'required|date',
+        ], [
+            'qty_masuk.min' => 'Qty harus lebih dari 0',
         ]);
 
         try {

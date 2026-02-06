@@ -14,6 +14,11 @@ class ProductBatchLog extends Model
         'qty_before',
         'qty_after',
         'description',
+        'changes',
+    ];
+
+    protected $casts = [
+        'changes' => 'array',
     ];
 
     public function batch()
