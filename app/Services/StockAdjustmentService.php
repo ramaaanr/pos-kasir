@@ -55,6 +55,8 @@ class StockAdjustmentService
                         ]);
 
                         // Update Batch Stock
+                        $diff = $qtyNew - $qtyCurrent;
+                        $batch->qty_masuk_base += $diff;
                         $batch->qty_sisa_base = $qtyNew;
                         $batch->save();
 
