@@ -34,7 +34,9 @@ class SaleService
             ->first();
 
         if ($item) {
-            $item->increment('qty_base', $qty);
+            // Increment by $qty visual unit (based on current multiplier)
+            $increment = (int) ($qty * $item->unit_multiplier);
+            $item->increment('qty_base', $increment);
             $item->update(['subtotal' => $item->qty_base * $item->harga_jual_per_unit]);
         } else {
             SaleItem::create([
@@ -89,11 +91,8 @@ class SaleService
             $label = $item->product->base_unit;
             $multiplier = 1;
         }
-        
-        $currentMultiplier = $item->unit_multiplier;
-        $userQty = $item->qty_base / $currentMultiplier;
-        
-        $newQtyBase = (int)($userQty * $multiplier);
+
+        $newQtyBase = (int)($multiplier); // Reset to 1 unit of the new selection
 
         // Validation: Ensure total available stock is enough for the new unit's base quantity
         $totalAvailable = ProductBatch::where('product_id', $item->product_id)
@@ -161,9 +160,6 @@ class SaleService
     {
         foreach ($sale->items as $item) {
             $qtyNeeded = $item->qty_base;
-            $originalPrice = $item->harga_jual_per_unit;
-            $originalUnit = $item->unit_label;
-            $originalMultiplier = $item->unit_multiplier;
 
             $batches = ProductBatch::where('product_id', $item->product_id)
                 ->where('qty_sisa_base', '>', 0)
@@ -190,23 +186,19 @@ class SaleService
                     'description' => "Penjualan Invoice #{$sale->invoice_number}",
                 ]);
 
-                // Record splitted sale item linked to batch
-                SaleItem::create([
-                    'sale_id' => $sale->id,
-                    'product_id' => $item->product_id,
+                // Record internal mapping for FIFO/Audit
+                \App\Models\SaleItemBatch::create([
+                    'sale_item_id' => $item->id,
                     'product_batch_id' => $batch->id,
                     'qty_base' => $deduct,
-                    'unit_label' => $originalUnit,
-                    'unit_multiplier' => $originalMultiplier,
-                    'harga_jual_per_unit' => $originalPrice,
-                    'subtotal' => $deduct * $originalPrice,
+                    'harga_beli_per_unit' => $batch->harga_beli_per_unit,
                 ]);
 
                 $qtyNeeded -= $deduct;
             }
 
-            // Delete original draft item
-            $item->delete();
+            // Note: We NO LONGER delete the item or split it into multiple SaleItems.
+            // One SaleItem = One Row on Invoice.
         }
     }
 
@@ -218,7 +210,7 @@ class SaleService
         $method = $paymentData['method'] ?? 'cash';
 
         if ($method === 'cash') {
-            $this->processCashPayment($sale);
+            $this->processCashPayment($sale, $paymentData);
         } elseif ($method === 'debt') {
             $this->processDebtPayment($sale, $paymentData);
         } else {
@@ -226,12 +218,14 @@ class SaleService
         }
     }
 
-    protected function processCashPayment(Sale $sale)
+    protected function processCashPayment(Sale $sale, array $paymentData = [])
     {
         $sale->update([
             'total_paid' => $sale->total,
             'payment_method' => 'cash',
-            'status' => 'completed'
+            'status' => 'completed',
+            'cash_received' => $paymentData['cash_received'] ?? $sale->total,
+            'cash_change' => $paymentData['cash_change'] ?? 0,
         ]);
 
         SalePayment::create([

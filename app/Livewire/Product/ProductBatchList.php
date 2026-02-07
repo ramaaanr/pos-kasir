@@ -15,6 +15,8 @@ class ProductBatchList extends Component
     public $search = '';
     public $product_filter = 'all';
     public $perPage = 10;
+    public $sortField = 'tanggal_masuk';
+    public $sortDirection = 'desc';
 
     // Modal State
     public $showModal = false;
@@ -47,6 +49,8 @@ class ProductBatchList extends Component
     protected $queryString = [
         'search' => ['except' => ''],
         'product_filter' => ['except' => 'all'],
+        'sortField' => ['except' => 'tanggal_masuk'],
+        'sortDirection' => ['except' => 'desc'],
     ];
 
     public function mount()
@@ -77,6 +81,7 @@ class ProductBatchList extends Component
             
             $this->qty_masuk = $batch->qty_masuk_base;
             $this->tanggal_masuk = $batch->tanggal_masuk->format('Y-m-d');
+            $this->unit_id = ''; // Reset to base unit to avoid double multiplication from previous state
             $this->availableUnits = $batch->product->units;
         } else {
             $this->isEdit = false;
@@ -187,7 +192,8 @@ class ProductBatchList extends Component
     public function calculateHargaJual()
     {
         $this->isCalculating = true;
-        $this->harga_jual = (int)($this->harga_beli + $this->margin);
+        // Cast to float to prevent TypeError: string + int
+        $this->harga_jual = (int)((float)$this->harga_beli + (float)$this->margin);
         $this->isCalculating = false;
     }
 
@@ -198,6 +204,7 @@ class ProductBatchList extends Component
 
     public function calculateMargin()
     {
+        // Cast to float to prevent TypeError: string - float
         $this->margin = (int)((float)$this->harga_jual - (float)$this->harga_beli);
     }
 
@@ -241,7 +248,18 @@ class ProductBatchList extends Component
             $this->closeModal();
             $this->dispatch('toast', ['type' => 'success', 'message' => $message]);
         } catch (\Exception $e) {
+            $this->showModal = false;
             $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function sortBy($field)
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'asc';
         }
     }
 
@@ -289,6 +307,7 @@ class ProductBatchList extends Component
             $this->showDeleteModal = false;
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Batch berhasil dihapus']);
         } catch (\Exception $e) {
+            $this->showDeleteModal = false;
             $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
         }
     }
@@ -312,9 +331,17 @@ class ProductBatchList extends Component
     public function render()
     {
         $query = ProductBatch::with('product')
-            ->when($this->search, fn($q) => $q->where('batch_code', 'like', '%' . $this->search . '%'))
+            ->when($this->search, function ($q) {
+                $search = '%' . $this->search . '%';
+                $q->where('batch_code', 'like', $search)
+                    ->orWhereHas('product', function ($pq) use ($search) {
+                        $pq->where('nama', 'like', $search)
+                            ->orWhere('kode_produk', 'like', $search);
+                    });
+            })
             ->when($this->product_filter !== 'all', fn($q) => $q->where('product_id', $this->product_filter))
-            ->orderBy('tanggal_masuk', 'desc');
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->orderBy('created_at', 'desc');
 
         return view('livewire.product.product-batch-list', [
             'batches' => $query->paginate($this->perPage),

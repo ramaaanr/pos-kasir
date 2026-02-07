@@ -40,10 +40,27 @@ class PosPage extends Component
     public $jaminan = '';
     public $partialDebtAmount = 0;
 
+    // Cash Calculation (Checkout Step 2)
+    public $cashReceived = 0;
+    public $cashChange = 0;
+
+    // Barcode Scanner Helper
+    public $pendingEnter = false;
+
+    public function updatedCashReceived()
+    {
+        $total = $this->currentSale->total ?? 0;
+        $this->cashChange = max(0, (int) $this->cashReceived - $total);
+    }
+
     public function selectFirstResult()
     {
         if (count($this->searchResults) > 0) {
             $this->addToCart($this->searchResults[0]->id);
+            $this->pendingEnter = false;
+        } else {
+            // If no results yet, mark as pending to auto-add as soon as it arrives
+            $this->pendingEnter = true;
         }
     }
 
@@ -96,6 +113,12 @@ class PosPage extends Component
             ->withSum('batches as estimated_stock', 'qty_sisa_base')
             ->take(8)
             ->get();
+
+        // Auto-add if scanner sent Enter prematurely
+        if ($this->pendingEnter && count($this->searchResults) === 1) {
+            $this->addToCart($this->searchResults[0]->id);
+            $this->pendingEnter = false;
+        }
     }
 
     // --- Cart Management ---
@@ -123,6 +146,7 @@ class PosPage extends Component
             
             $this->search = '';
             $this->searchResults = [];
+            $this->pendingEnter = false;
             $this->loadCurrentSale();
         } catch (\Exception $e) {
             $this->dispatch('notify', message: $e->getMessage(), type: 'error');
@@ -137,7 +161,7 @@ class PosPage extends Component
         try {
             // BUG 2: Ensure visual delta is integer
             if (floor($delta) != $delta) {
-                throw new Exception("Kuantitas harus berupa angka bulat.");
+                throw new \Exception("Kuantitas harus berupa angka bulat.");
             }
 
             $baseDelta = (int)($delta * $item->unit_multiplier);
@@ -156,7 +180,7 @@ class PosPage extends Component
         try {
             // BUG 2: Strict Integer Validation
             if (!is_numeric($visualQty) || floor($visualQty) != $visualQty) {
-                throw new Exception("Kuantitas harus berupa angka bulat.");
+                throw new \Exception("Kuantitas harus berupa angka bulat.");
             }
 
             $baseQty = (int)((float)$visualQty * $item->unit_multiplier);
@@ -230,6 +254,11 @@ class PosPage extends Component
             $this->checkoutStep = 2;
         } elseif ($this->checkoutStep === 2) {
             if ($this->paymentMethod === 'cash') {
+                // Validate cash received
+                if ($this->cashReceived < $this->currentSale->total) {
+                    $this->dispatch('notify', message: 'Uang yang diterima kurang!', type: 'error');
+                    return;
+                }
                 $this->finalizeTransaction();
             } else {
                 $this->checkoutStep = 3;
@@ -278,6 +307,8 @@ class PosPage extends Component
                 'customer_address' => $this->customerAddress,
                 'jaminan' => $this->jaminan,
                 'partial_amount' => $this->paymentMethod === 'debt' ? (int) $this->partialDebtAmount : 0,
+                'cash_received' => $this->paymentMethod === 'cash' ? (int) $this->cashReceived : 0,
+                'cash_change' => $this->paymentMethod === 'cash' ? (int) $this->cashChange : 0,
             ]);
 
             $this->finalizeSuccessState();
@@ -294,6 +325,10 @@ class PosPage extends Component
     public $successTotal = 0;
     public $successMethod = '';
     public $successCustomer = '';
+    public $successCashReceived = 0;
+    public $successCashChange = 0;
+    public $successItems = [];
+    public $successDate = '';
 
     private function finalizeSuccessState()
     {
@@ -301,9 +336,25 @@ class PosPage extends Component
         $this->successTotal = $this->currentSale->total;
         $this->successMethod = $this->paymentMethod;
         $this->successCustomer = $this->customerName;
+        $this->successCashReceived = (int) $this->cashReceived;
+        $this->successCashChange = (int) $this->cashChange;
+        $this->successDate = now()->format('d-m-Y H:i');
+
+        // Snapshot items for printing
+        $this->successItems = $this->currentSale->items->map(function ($item) {
+            return [
+                'nama' => $item->product->nama,
+                'qty' => $item->qty_base / $item->unit_multiplier,
+                'unit' => $item->unit_label,
+                'harga' => $item->harga_jual_per_unit * $item->unit_multiplier,
+                'subtotal' => $item->subtotal
+            ];
+        })->toArray();
         
         $this->currentSale = null;
         $this->partialDebtAmount = 0;
+        $this->cashReceived = 0;
+        $this->cashChange = 0;
         $this->showCheckoutModal = false;
         $this->showSuccessModal = true;
     }

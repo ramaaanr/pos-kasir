@@ -71,16 +71,8 @@ class ProductBatchService
         return DB::transaction(function () use ($id, $data) {
             $batch = ProductBatch::findOrFail($id);
 
-            // Hard Constraint: Reject update if qty_sisa_base < qty_masuk_base
-            if ($batch->qty_sisa_base < $batch->qty_masuk_base) {
-                throw new \Exception('Batch tidak dapat diubah karena stok sudah mulai digunakan (FIFO Rule).');
-            }
-
-            $oldQty = $batch->qty_masuk_base;
-            
-            $product = Product::findOrFail($data['product_id']);
-            
             $multiplier = 1;
+            $product = Product::findOrFail($data['product_id']);
             if (isset($data['unit_id']) && $data['unit_id']) {
                 $unit = ProductUnit::where('product_id', $product->id)->findOrFail($data['unit_id']);
                 $multiplier = $unit->multiplier;
@@ -88,6 +80,13 @@ class ProductBatchService
 
             $qty_input = $data['qty_input'];
             $qty_masuk_base = (int)round($qty_input * $multiplier);
+            $oldQty = $batch->qty_masuk_base;
+            $oldSisa = $batch->qty_sisa_base;
+
+            // FIFO Rule check: Only if quantity is changing
+            if ($oldQty !== $qty_masuk_base && $oldSisa < $oldQty) {
+                throw new \Exception('Kuantitas batch tidak dapat diubah karena stok sudah mulai digunakan (FIFO Rule).');
+            }
 
             $oldData = [
                 'harga_beli' => (float)$batch->harga_beli_per_unit,
@@ -95,14 +94,20 @@ class ProductBatchService
                 'tanggal_masuk' => $batch->tanggal_masuk->format('Y-m-d'),
             ];
 
-            $batch->update([
+            $updateData = [
                 'product_id' => $product->id,
                 'harga_beli_per_unit' => $data['harga_beli_per_base'],
                 'harga_jual_per_unit' => $data['harga_jual_per_base'],
-                'qty_masuk_base' => $qty_masuk_base,
-                'qty_sisa_base' => $qty_masuk_base,
                 'tanggal_masuk' => $data['tanggal_masuk'],
-            ]);
+            ];
+
+            // Only update qty fields if they actually changed (to avoid resetting qty_sisa)
+            if ($oldQty !== $qty_masuk_base) {
+                $updateData['qty_masuk_base'] = $qty_masuk_base;
+                $updateData['qty_sisa_base'] = $qty_masuk_base;
+            }
+
+            $batch->update($updateData);
 
             $newData = [
                 'harga_beli' => (float)$data['harga_beli_per_base'],
@@ -112,7 +117,15 @@ class ProductBatchService
 
             $changes = [];
             foreach ($oldData as $key => $value) {
-                if ($value != $newData[$key]) {
+                $isDifferent = false;
+                if ($key === 'tanggal_masuk') {
+                    $isDifferent = $value !== $newData[$key];
+                } else {
+                    // Use round for price comparisons to avoid float issues
+                    $isDifferent = round($value, 2) !== round($newData[$key], 2);
+                }
+
+                if ($isDifferent) {
                     $changes['old'][$key] = $value;
                     $changes['new'][$key] = $newData[$key];
                 }

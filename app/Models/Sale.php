@@ -17,6 +17,8 @@ class Sale extends Model
         'total_paid',
         'payment_method',
         'status',
+        'cash_received',
+        'cash_change',
     ];
 
     protected $casts = [

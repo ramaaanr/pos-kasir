@@ -422,7 +422,7 @@ Error message: The qty masuk field must be at least 1.
 Data tersimpan? No (harus No)
 ```
 
-**Status:** Partial 
+**Status:** Pass
 **Screenshot:** ⬜ Attached  
 **Notes:** sesuaikan pesan error jadi bahasa indo seperti "Qty harus lebih dari 0"
 
@@ -452,28 +452,24 @@ Field yang bisa diubah: Harga dan Tanggal Masuk
 Harga ter-update? ⬜ Yes
 ```
 
-**Status:** ⬜ partial 
+**Status:** Pass
 **Screenshot:** ⬜ Attached  
-**Notes:** Ketika harga berubah seharusnya juga tercatat di product bathc logs tapi ternyata table dri product bathc logs tidak bisa menyimpan perubahan harga dant anggal untuk product batch logs tolong sesuaikan lagi tablenya, perbaiki service dan ui perubahan batch logsnya
-```
-CREATE TABLE `product_batch_logs` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `product_batch_id` bigint unsigned NOT NULL,
-  `user_id` bigint unsigned NOT NULL,
-  `action` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `qty_change` int NOT NULL,
-  `qty_before` int NOT NULL,
-  `qty_after` int NOT NULL,
-  `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `product_batch_logs_product_batch_id_foreign` (`product_batch_id`),
-  KEY `product_batch_logs_user_id_foreign` (`user_id`),
-  CONSTRAINT `product_batch_logs_product_batch_id_foreign` FOREIGN KEY (`product_batch_id`) REFERENCES `product_batches` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `product_batch_logs_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-```
+**Notes:** Ketika harga berubah seharusnya juga tercatat di product bathc logs tapi ternyata table dri product bathc logs tidak bisa menyimpan perubahan harga dant anggal untuk product batch logs malah menyimpan perubahan quantity. patut diketahui bahwa batch log tidak boleh merubah stok managemetn jadi bugsnya sperti ini:
+Case 1:
+1.  Terdapat Produk Indomie Goreng Dengan harga beli 2400 dan harga jual 3500 serta stok 100/100
+2.  Diubah Harga beli jadi 2500 dan harga Jual 3500 (tetep)
+3. Perbarui
+4. harga akan berubah sesuai dengan perubahan
+5. Di Master Data Product Batch Juga berubah dan Tercatat di Product Batch Log pada kolom changes 
+{"new": {"harga_beli": 2500}, "old": {"harga_beli": 2400}}
+6. Lihat IRwyat Batch akan tercata perubahan yang da
+SUCCESS
+
+Case 2 Yang memiliki product units dan create pertama kali:
+Notes: case ini ketika user pertama create batch dan lngsung edit
+1. user create produk BCH-20260207-002	Indomie Goreng Jumbo	harga beli Rp 3.900 jual	Rp 4.400 stok 20, saat di create dia diinput sebagai Product Unit "Per10" dengan multiplier 10 dengan mengisi 2.  jadi stoknya akan jadi 20
+2. User mencoba untuk edit product tanpa reload halaman, Semua input terkecuiali tanggal, harga beli, harga jual, dan margin tidak dapat diisi. coba kita ubah harga beli jadi 4000, perlu di notice kuantitas tadi tidak di conver ke base unti sperti biasanya tapi masih sperti di awal "Product Unit "Per10" dengan multiplier 10 dengan mengisi 2" saat disimpan ternyata stoknya berubha jadi di kali 10 lagi jadi 200, jika diedit dn dsimpan akan dikali lagi 10. tapi saat di reload ini aman saja, saat edit tidak akan mengali berdasarkan product unitsnya. di Database dengan id product bathc logs 29 dan 28 tidak ada terisi kolom changes tapi beubah di qty change dan tambah deskripsi Batch quantity updated via Edit form seharusnya form edit tidak boleh ubah stok terkecuali di sales karena pengurangan disebabkan oleh penjualan also stock adjustment ketika stok ada bermasalah
+FAILED
 
 ---
 
@@ -500,7 +496,7 @@ Konfirmasi muncul? ⬜ Yes ⬜ No
 Batch terhapus? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** Pass
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -519,9 +515,7 @@ Batch terhapus? ⬜ Yes ⬜ No
 3. Perhatikan respon
 
 ### Expected Result:
-- Muncul pesan error
-- Pesan: "Batch tidak bisa dihapus karena sudah terpakai"
-- Batch TIDAK terhapus
+- Tidak Ada pilihan Menghapus batch
 
 ### Actual Result:
 ```
@@ -529,7 +523,7 @@ Error message: ________________________________________________
 Batch terhapus? ⬜ Yes ⬜ No (harus No)
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -560,7 +554,7 @@ Harga Jual Master: _______ (expected: 3500)
 Match? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -584,7 +578,7 @@ Total batch: _______
 Semua batch dari Indomie? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** Fail
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -632,7 +626,7 @@ Total log entries: _______
 Info lengkap? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -657,7 +651,7 @@ Batch 1 Date: _______ | Batch 2 Date: _______
 Urutan correct? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -675,12 +669,11 @@ Urutan correct? ⬜ Yes ⬜ No
 
 ### Expected Result:
 - Tampil tabel adjustment dengan kolom:
-  - No
+ 
   - Tanggal
   - User
   - Reason/Alasan
   - Total Items
-  - Net Change
   - Aksi
 - Tampil tombol "Buat Adjustment"
 
@@ -690,7 +683,7 @@ Total Adjustment: _______
 Kolom yang tampil: ____________________________________________
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -727,10 +720,381 @@ Difference: _______ (expected: -10)
 Log tercatat? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
+
+# 6️⃣ POS TRANSACTIONS - CASH
+
+## UAT-POS-CASH-001: Search dan Add Product to Cart
+**Priority:** High | **Role:** Kasir
+
+### Test Steps:
+1. Login sebagai Kasir
+2. Klik menu "Transaksi" / "POS"
+3. Di search box, ketik: `Nice living Food Safe` atau kode 8992759114348
+4. Perhatikan hasil search
+5. Klik produk atau tombol "Tambah" untuk add to cart
+
+### Expected Result:
+- Search box tersedia dan responsive
+- Autocomplete/dropdown muncul saat mengetik
+- Tampil produk yang mengandung "Indomie"
+- Klik produk → masuk ke cart
+- Cart menampilkan:
+  - Nama produk
+  - Qty: 1 (default)
+  - Harga satuan
+  - Subtotal
+- Total transaksi update otomatis
+
+### Actual Result:
+```
+Search working? ⬜ Yes 
+Autocomplete? ⬜ Yes 
+Product added to cart? ⬜ Yes 
+Default qty: 1
+Subtotal shown: Rp 8000
+Total updated? ⬜ Yes 
+```
+
+**Status:** Pass
+**Screenshot:** ⬜ Attached  
+**Notes:** Barcode Scanner akan mengisi kode misalka 8992759114348 dan akan menekan Enter setelah angka tersebut berhasil sehingga tidak akan tersimpan ke cart karean data Produk yag dicari tidak ada, sedangkan sistem akan mengquery dulu dan menampilkan item baru bisa dienter agar masuk ke cart. Coba buatkan agar ketika user menekan input search maka jika barcode scanner mengisi angak terus enter, enter tadi dsimpan dlu bahwa dia pernah melakukan enter, ketika system sdh menemukan product sesuai dengan kode terus tambahkan lgnsugng ke cart
+
+---
+
+## UAT-POS-CASH-002: Adjust Quantity (+/-)
+**Priority:** High | **Role:** Kasir
+
+### Test Steps:
+1. Tambah produk ke cart (qty default: 1)
+2. Klik tombol **+** (plus) beberapa kali
+3. Perhatikan qty dan subtotal
+4. Klik tombol **-** (minus)
+5. Perhatikan perubahan
+
+### Expected Result:
+- Tombol + berfungsi: qty bertambah 1
+- Tombol - berfungsi: qty berkurang 1
+- Subtotal update otomatis setiap perubahan qty
+- Total transaksi update otomatis
+- Tombol - disabled atau qty tidak bisa < 1
+
+### Actual Result:
+```
+Tombol + working? ⬜ Yes ⬜ No
+Tombol - working? ⬜ Yes ⬜ No
+After 3x click +:
+  Qty: _______ (expected: 4)
+  Subtotal update? ⬜ Yes ⬜ No
+Minimum qty = 1? ⬜ Yes ⬜ No
+```
+
+**Status:** ⬜ Pass 
+**Screenshot:** ⬜ Attached  
+**Notes:** _____________________________________________________
+
+---
+
+## UAT-POS-CASH-003: Input Quantity Manual
+**Priority:** High | **Role:** Kasir
+
+### Test Steps:
+1. Tambah produk ke cart
+2. Klik langsung pada field qty
+3. Hapus angka dan ketik: `25`
+4. Tab/Enter atau klik di luar field
+5. Perhatikan perubahan
+
+### Expected Result:
+- Field qty bisa diklik dan di-edit
+- Input manual langsung terupdate
+- Subtotal recalculate: qty x harga
+- Total transaksi update
+- Validasi: qty harus angka positif
+
+### Actual Result:
+```
+Field editable? ⬜ Yes ⬜ No
+Input 25 accepted? ⬜ Yes ⬜ No
+Subtotal: Rp _____________ (verify: 25 x harga)
+Total updated? ⬜ Yes ⬜ No
+Validation working? ⬜ Yes ⬜ No
+```
+
+**Status:** ⬜ Pass 
+**Screenshot:** ⬜ Attached  
+**Notes:** _____________________________________________________
+
+---
+
+## UAT-POS-CASH-004: Change Product Unit
+**Priority:** High | **Role:** Kasir
+
+| Field | Details |
+|-------|---------|
+| **Pre-condition** | Produk memiliki multi-unit (Pcs, Dus, Karton) |
+| **Test Data** | Indomie: Pcs (1x), Dus (40x), Karton (120x), Harga: Rp 3.000/pcs |
+
+### Test Steps:
+1. Tambah produk "Indomie" ke cart
+2. Default: 1 Pcs, Subtotal: Rp 3.000
+3. Klik dropdown unit
+4. Pilih "Dus"
+5. Perhatikan subtotal
+6. Pilih "Karton"
+7. Perhatikan subtotal
+
+### Expected Result:
+- Dropdown unit menampilkan: Pcs, Dus, Karton
+- Ganti ke Dus:
+  - Subtotal = 1 Dus x (Rp 3.000 x 40) = Rp 120.000
+- Ganti ke Karton:
+  - Subtotal = 1 Karton x (Rp 3.000 x 120) = Rp 360.000
+- Qty tetap 1, yang berubah multiplier
+- Total transaksi update
+
+### Actual Result:
+```
+Units available: ______________________________________________
+Select Dus:
+  Subtotal: Rp _____________ (expected: Rp 120.000)
+Select Karton:
+  Subtotal: Rp _____________ (expected: Rp 360.000)
+Calculation correct? ⬜ Yes ⬜ No
+```
+
+**Status:** Pass
+**Screenshot:** ⬜ Attached  
+**Notes:** Seharusnya ketika Pindah Product Units value qty harus di set ke 1
+---
+
+## UAT-POS-CASH-005: Remove Item from Cart
+**Priority:** High | **Role:** Kasir
+
+### Test Steps:
+1. Tambah 3 produk berbeda ke cart
+2. Perhatikan total
+3. Klik tombol "Hapus" / "Remove" / icon X pada item ke-2
+4. Perhatikan perubahan
+
+### Expected Result:
+- Item terhapus dari cart
+- Cart sekarang hanya 2 item
+- Total transaksi berkurang (recalculate)
+- UI update smooth tanpa reload
+
+### Actual Result:
+```
+Before remove:
+  Items count: _______
+  Total: Rp _____________
+
+After remove:
+  Items count: _______ (expected: 2)
+  Total: Rp _____________
+  Calculation correct? ⬜ Yes ⬜ No
+```
+
+**Status:** ⬜ Pass 
+**Screenshot:** ⬜ Attached  
+**Notes:** _____________________________________________________
+
+---
+
+## UAT-POS-CASH-006: Complete Cash Transaction
+**Priority:** High | **Role:** Kasir
+
+| Field | Details |
+|-------|---------|
+| **Test Data** | Total: Rp 50.000, Cash: Rp 100.000 |
+
+### Test Steps:
+1. Tambah produk ke cart (total: Rp 50.000)
+2. Klik "Checkout" / "Bayar"
+3. Modal/halaman payment muncul
+4. Pilih metode: **Cash/Tunai**
+5. Input jumlah uang: `100000`
+6. Klik "Confirm" / "Proses"
+
+### Expected Result:
+- Payment modal muncul
+- Tampil total: Rp 50.000
+- Input cash: Rp 100.000
+- Auto-calculate kembalian: Rp 50.000
+- Transaksi berhasil tersimpan:
+  - Sale record created
+  - payment_method = 'cash'
+  - total_paid = 50000
+  - status = 'completed'
+- Stock terpotong (FIFO)
+- Invoice generated
+- Modal close, cart kosong
+- Notifikasi sukses
+
+### Actual Result:
+```
+Payment modal shown? ⬜ Yes 
+Total: Rp _____________ (expected: Rp 50.000)
+Cash: Rp 100.000
+Kembalian: Rp _____________ (expected: Rp 50.000)
+Transaction saved? ⬜ Yes ⬜ No
+Stock deducted? ⬜ Yes ⬜ No
+Cart cleared? ⬜ Yes ⬜ No
+Invoice generated? ⬜ Yes ⬜ No
+```
+
+**Status:** Pass
+**Screenshot:** ⬜ Attached  
+**Notes:** Saya ingin print invoice buat dengan detail berdsarkan sistem fifo
+
+---
+
+## UAT-POS-CASH-007: Calculate Change Correctly
+**Priority:** High | **Role:** Kasir
+
+### Test Steps:
+1. Buat transaksi dengan berbagai total:
+   - Test 1: Total Rp 15.000, Cash Rp 20.000
+   - Test 2: Total Rp 47.500, Cash Rp 50.000
+   - Test 3: Total Rp 100.000, Cash Rp 100.000 (exact)
+
+### Expected Result:
+- Test 1: Kembalian = Rp 5.000
+- Test 2: Kembalian = Rp 2.500
+- Test 3: Kembalian = Rp 0
+- Perhitungan akurat
+- Tampil dengan format Rupiah
+
+### Actual Result:
+```
+Test 1:
+  Total: Rp 15.000 | Cash: Rp 20.000
+  Kembalian: Rp 5000 (expected: Rp 5.000)
+
+Test 2:
+  Total: Rp 47.500 | Cash: Rp 50.000
+  Kembalian: Rp _____________ (expected: Rp 2.500)
+
+Test 3:
+  Total: Rp 100.000 | Cash: Rp 100.000
+  Kembalian: Rp _____________ (expected: Rp 0)
+
+All correct? ⬜ Yes ⬜ No
+```
+
+**Status:** ⬜ Pass 
+**Screenshot:** ⬜ Attached  
+**Notes:** _____________________________________________________
+
+---
+
+## UAT-POS-CASH-008: Stock Deduction (FIFO - Single Batch)
+**Priority:** High | **Role:** Kasir
+
+| Field | Details |
+|-------|---------|
+| **Pre-condition** | Ada 1 batch untuk produk dengan qty_sisa = 100 |
+
+### Test Steps:
+1. Catat qty_sisa batch sebelum transaksi
+2. Buat transaksi POS:
+   - Produk tersebut, qty = 15 pcs
+3. Complete dengan cash
+4. Cek qty_sisa batch setelah transaksi
+
+### Expected Result:
+- Qty before: 100
+- Qty after: 85 (100 - 15)
+- Stock terpotong otomatis saat transaksi complete
+- Log tercatat di product_batch_logs
+
+### Actual Result:
+```
+Batch ID: _______
+Qty before: _______ (should be 100)
+Qty after transaction: _______ (expected: 85)
+Deducted: _______ (expected: 15)
+Log recorded? ⬜ Yes ⬜ No
+```
+
+**Status:** ⬜ Pass 
+**Screenshot:** ⬜ Attached  
+**Notes:** _____________________________________________________
+
+---
+
+## UAT-POS-CASH-009: Insufficient Stock Validation
+**Priority:** High | **Role:** Kasir
+
+| Field | Details |
+|-------|---------|
+| **Pre-condition** | Produk hanya punya stok 5 pcs |
+
+### Test Steps:
+1. Tambah produk ke cart
+2. Set qty = 10 (lebih dari stok tersedia)
+3. Klik "Checkout"
+
+### Expected Result:
+- Validasi error muncul
+- Pesan: "Stok tidak mencukupi. Tersedia: 5 pcs"
+- Atau: Tidak bisa input qty > stok
+- Atau: Tombol checkout disabled
+- Transaksi TIDAK bisa diproses
+
+### Actual Result:
+```
+Validation working? ⬜ Yes ⬜ No
+Error message: ________________________________________________
+_________________________________________________________________
+Transaction blocked? ⬜ Yes ⬜ No (harus Yes)
+Stock available shown? ⬜ Yes ⬜ No
+```
+
+**Status:** ⬜ Pass 
+**Screenshot:** ⬜ Attached  
+**Notes:** _____________________________________________________
+
+---
+
+## UAT-POS-CASH-010: Cancel Transaction
+**Priority:** Medium | **Role:** Kasir
+
+### Test Steps:
+1. Tambah beberapa produk ke cart
+2. Perhatikan tombol "Batal" / "Cancel"
+3. Klik tombol tersebut
+4. Konfirmasi pembatalan (jika ada)
+
+### Expected Result:
+- Tombol Cancel tersedia
+- Konfirmasi muncul: "Yakin ingin membatalkan transaksi?"
+- Setelah confirm:
+  - Cart dikosongkan
+  - Total = Rp 0
+  - Tidak ada perubahan stock
+  - Tidak ada sale record tersimpan
+  - Kembali ke state awal (empty cart)
+
+### Actual Result:
+```
+Cancel button available? ⬜ Yes ⬜ No
+Confirmation shown? ⬜ Yes ⬜ No
+After cancel:
+  Cart empty? ⬜ Yes ⬜ No
+  Total: Rp _____________ (expected: Rp 0)
+  Stock unchanged? ⬜ Yes ⬜ No
+  No sale record? ⬜ Yes ⬜ No
+```
+
+**Status:** ⬜ Pass 
+**Screenshot:** ⬜ Attached  
+**Notes:** _____________________________________________________
+
+---
 ---
 
 _Dokumen berlanjut di Part 3 (POS Transactions - Debt & Debt Management)_

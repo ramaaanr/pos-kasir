@@ -22,7 +22,7 @@
                 <input
                     type="text"
                     wire:model.live.debounce.300ms="search"
-                    placeholder="Cari Batch Code..."
+                    placeholder="Cari Produk atau Batch Code..."
                     class="flex h-10 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
             </div>
 
@@ -54,7 +54,22 @@
             <table class="w-full text-sm text-left">
                 <thead>
                     <tr class="border-b border-border bg-muted/30">
-                        <th class="px-4 py-3 font-semibold text-muted-foreground">Tgl Masuk</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground">
+                            <button wire:click="sortBy('tanggal_masuk')" class="flex items-center gap-1 hover:text-foreground transition-colors group">
+                                Tgl Masuk
+                                <span class="transition-transform duration-200">
+                                    @if($sortField === 'tanggal_masuk')
+                                    @if($sortDirection === 'asc')
+                                    <x-lucide-chevron-up class="h-3 w-3" />
+                                    @else
+                                    <x-lucide-chevron-down class="h-3 w-3" />
+                                    @endif
+                                    @else
+                                    <x-lucide-chevrons-up-down class="h-3 w-3 opacity-30 group-hover:opacity-100" />
+                                    @endif
+                                </span>
+                            </button>
+                        </th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground">Batch Code</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground">Produk</th>
                         <th class="px-6 py-3 font-semibold text-muted-foreground text-right">Harga Beli</th>
@@ -175,6 +190,7 @@
             isEdit: @entangle('isEdit')
         }"
         x-show="show"
+        @keydown.enter.prevent
         class="fixed inset-0 z-[100] overflow-y-auto"
         style="display: none;"
         @keydown.escape.window="show = false">
@@ -424,6 +440,10 @@
                                 <span class="text-sm font-bold text-foreground block">{{ $batchDetail->product->nama }}</span>
                                 <span class="text-[10px] text-muted-foreground uppercase font-mono">{{ $batchDetail->product->kode_produk }}</span>
                             </div>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-border/50">
+                            <span class="text-sm text-muted-foreground">Batch Code</span>
+                            <span class="text-sm font-mono font-bold text-primary bg-primary/5 px-2 py-0.5 rounded">{{ $batchDetail->batch_code }}</span>
                         </div>
                         <div class="flex justify-between items-center py-2 border-b border-border/50">
                             <span class="text-sm text-muted-foreground">Tanggal Masuk</span>
