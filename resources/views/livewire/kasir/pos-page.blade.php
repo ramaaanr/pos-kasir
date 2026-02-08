@@ -423,15 +423,15 @@
                                 <input type="text" wire:model.live="customerName" class="w-full h-12 rounded-2xl bg-muted/30 border-border px-4 font-medium focus:ring-primary focus:border-primary" placeholder="Nama lengkap...">
                             </div>
                             <div class="space-y-2">
-                                <label class="text-sm font-bold ml-1">Nomor HP <span class="text-destructive">*</span></label>
-                                <input type="text" wire:model.live="customerPhone" class="w-full h-12 rounded-2xl bg-muted/30 border-border px-4 font-medium focus:ring-primary focus:border-primary" placeholder="08xxx...">
+                                <label class="text-sm font-bold ml-1">Nomor HP</label>
+                                <input type="text" wire:model.live="customerPhone" class="w-full h-12 rounded-2xl bg-muted/30 border-border px-4 font-medium focus:ring-primary focus:border-primary" placeholder="08xxx (Opsional)...">
                             </div>
                         </div>
 
                         <div class="space-y-2">
-                            <label class="text-sm font-bold ml-1">Jaminan Hutang <span class="text-destructive">*</span></label>
-                            <textarea wire:model.live="jaminan" class="w-full rounded-2xl bg-muted/30 border-border px-4 py-3 font-medium focus:ring-primary focus:border-primary" rows="2" placeholder="Contoh: KTP ditahan, Nota toko, dll..."></textarea>
-                            <p class="text-[10px] text-muted-foreground ml-1">Wajib diisi sebagai syarat transaksi hutang.</p>
+                            <label class="text-sm font-bold ml-1">Jaminan Hutang</label>
+                            <textarea wire:model.live="jaminan" class="w-full rounded-2xl bg-muted/30 border-border px-4 py-3 font-medium focus:ring-primary focus:border-primary" rows="2" placeholder="Contoh: KTP ditahan, Nota toko, dll (Opsional)..."></textarea>
+                            <p class="text-[10px] text-muted-foreground ml-1">Opsional sebagai syarat tambahan transaksi hutang.</p>
                         </div>
 
                         <div class="space-y-2">
@@ -531,7 +531,7 @@
                         @endif
                         @else
                         @php
-                        $isDebtValid = !empty($customerName) && !empty($customerPhone) && !empty($jaminan);
+                        $isDebtValid = !empty($customerName);
                         $isPartialFull = $paymentMethod === 'debt' && $currentSale && $partialDebtAmount == $currentSale->total;
                         $canSelesaikan = (($paymentMethod === 'cash') || ($paymentMethod === 'debt' && $isDebtValid)) && !$isPartialFull;
                         @endphp
@@ -669,6 +669,14 @@
                         <span class="text-muted-foreground">Pelanggan</span>
                         <span class="font-bold">{{ $successCustomer }}</span>
                     </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-muted-foreground">DP (Dibayar Sekarang)</span>
+                        <span class="font-bold text-emerald-600">Rp {{ number_format($successPartialAmount, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-muted-foreground">Sisa Hutang</span>
+                        <span class="font-bold text-red-500">Rp {{ number_format($successTotal - $successPartialAmount, 0, ',', '.') }}</span>
+                    </div>
                     @else
                     <div class="flex justify-between items-center text-sm">
                         <span class="text-muted-foreground">Bayar (Cash)</span>
@@ -799,9 +807,17 @@
                 <span>Rp {{ number_format($successCashChange, 0, ',', '.') }}</span>
             </div>
             @else
-            <div class="flex justify-between">
-                <span>PELANGGAN</span>
+            <div class="flex justify-between font-bold">
+                <span>PELANGGAN :</span>
                 <span>{{ $successCustomer }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>BAYAR (DP) :</span>
+                <span>Rp {{ number_format($successPartialAmount, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between font-bold text-black border-t border-black border-dotted pt-1 mt-1">
+                <span>SISA HUTANG:</span>
+                <span>Rp {{ number_format($successTotal - $successPartialAmount, 0, ',', '.') }}</span>
             </div>
             @endif
         </div>

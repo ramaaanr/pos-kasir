@@ -2,7 +2,8 @@
     x-data="{ 
         showPaymentModal: @entangle('showPaymentModal'),
         showSuccessModal: @entangle('showSuccessModal'),
-        showErrorModal: @entangle('showErrorModal')
+        showErrorModal: @entangle('showErrorModal'),
+        showHistoryModal: @entangle('showHistoryModal')
     }"
 >
     <!-- 1. Header (POS Style) -->
@@ -139,13 +140,22 @@
                                             <span class="text-[10px] font-bold text-muted-foreground uppercase opacity-60">Sisa Hutang:</span>
                                             <span class="text-xl font-black text-primary tracking-tighter">Rp {{ number_format($debt->remaining_balance, 0, ',', '.') }}</span>
                                         </div>
-                                        <button 
-                                            wire:click="openPaymentModal({{ $debt->id }})"
-                                            class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20"
-                                        >
-                                            <x-lucide-check-circle class="h-4 w-4" />
-                                            Bayar Sekarang
-                                        </button>
+                                        <div class="flex gap-2">
+                                            <button 
+                                                wire:click="openHistoryModal({{ $debt->id }})"
+                                                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-primary text-primary font-bold text-sm hover:bg-primary/10 transition-all"
+                                            >
+                                                <x-lucide-history class="h-4 w-4" />
+                                                History
+                                            </button>
+                                            <button 
+                                                wire:click="openPaymentModal({{ $debt->id }})"
+                                                class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20"
+                                            >
+                                                <x-lucide-check-circle class="h-4 w-4" />
+                                                Bayar Sekarang
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -296,6 +306,89 @@
                 >
                     Tutup
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORY MODAL -->
+    <div 
+        x-show="showHistoryModal"
+        x-cloak
+        class="fixed inset-0 z-[100] overflow-y-auto"
+        @keydown.escape.window="showHistoryModal = false"
+    >
+        <div class="flex items-center justify-center min-h-screen p-4 text-center">
+            <div x-show="showHistoryModal" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm" @click="showHistoryModal = false"></div>
+            
+            <div 
+                x-show="showHistoryModal" 
+                x-transition.scale.origin.center
+                class="relative inline-block align-bottom bg-card rounded-3xl shadow-2xl border border-border text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle w-full max-w-lg z-10"
+            >
+                <div class="px-8 py-6 border-b border-border bg-muted/30 flex items-center justify-between">
+                    <h3 class="text-xl font-extrabold flex items-center gap-3">
+                        <x-lucide-history class="h-6 w-6 text-primary" />
+                        Riwayat Pembayaran
+                    </h3>
+                    <button @click="showHistoryModal = false" class="p-2 hover:bg-muted rounded-full transition-colors"><x-lucide-x class="h-5 w-5" /></button>
+                </div>
+    
+                <div class="px-8 py-8">
+                    @if($historyDebt)
+                        <div class="mb-6 p-4 bg-muted/50 rounded-2xl border border-border/50 flex flex-col gap-1">
+                            <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Informasi Nota</span>
+                            <div class="flex justify-between items-center">
+                                <span class="font-mono text-sm font-bold">{{ $historyDebt->sale->invoice_number }}</span>
+                                <div class="text-right">
+                                    <span class="text-[10px] font-medium text-muted-foreground block uppercase">Total Hutang Awal</span>
+                                    <span class="text-sm font-black">Rp {{ number_format($historyDebt->amount, 0, ',', '.') }}</span>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="space-y-3">
+                            <h4 class="text-sm font-bold text-muted-foreground uppercase tracking-wider px-1">Log Pembayaran</h4>
+                            @forelse($historyDebt->payments as $payment)
+                                <div class="flex justify-between items-center p-4 rounded-2xl bg-card border border-border hover:border-primary/30 transition-all group">
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-10 w-10 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                                            <x-lucide-arrow-down-left class="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <span class="text-sm font-bold text-foreground block">Rp {{ number_format($payment->amount, 0, ',', '.') }}</span>
+                                            <span class="text-[10px] text-muted-foreground">{{ $payment->paid_at->format('d M Y, H:i') }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        @if($payment->note)
+                                            <span class="text-[10px] italic text-muted-foreground">{{ $payment->note }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="py-12 flex flex-col items-center justify-center opacity-40">
+                                    <x-lucide-info class="h-12 w-12 mb-2" />
+                                    <p class="text-sm font-bold uppercase tracking-widest">Belum ada pembayaran</p>
+                                </div>
+                            @endforelse
+                        </div>
+    
+                        <div class="mt-8 pt-6 border-t border-border flex justify-between items-center">
+                            <div>
+                                <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">Sudah Terbayar</span>
+                                <span class="text-lg font-black text-emerald-600">Rp {{ number_format($historyDebt->total_paid, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">Sisa Hutang</span>
+                                <span class="text-xl font-black text-red-500">Rp {{ number_format($historyDebt->remaining_balance, 0, ',', '.') }}</span>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+    
+                <div class="px-8 py-6 border-t border-border bg-muted/30">
+                    <button @click="showHistoryModal = false" class="w-full py-3 rounded-xl bg-primary text-white font-black hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 text-sm">Tutup History</button>
+                </div>
             </div>
         </div>
     </div>

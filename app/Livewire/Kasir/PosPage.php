@@ -325,6 +325,7 @@ class PosPage extends Component
     public $successTotal = 0;
     public $successMethod = '';
     public $successCustomer = '';
+    public $successPartialAmount = 0;
     public $successCashReceived = 0;
     public $successCashChange = 0;
     public $successItems = [];
@@ -336,6 +337,7 @@ class PosPage extends Component
         $this->successTotal = $this->currentSale->total;
         $this->successMethod = $this->paymentMethod;
         $this->successCustomer = $this->customerName;
+        $this->successPartialAmount = (int) $this->partialDebtAmount;
         $this->successCashReceived = (int) $this->cashReceived;
         $this->successCashChange = (int) $this->cashChange;
         $this->successDate = now()->format('d-m-Y H:i');

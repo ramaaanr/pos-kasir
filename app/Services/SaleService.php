@@ -239,13 +239,30 @@ class SaleService
     protected function processDebtPayment(Sale $sale, array $paymentData)
     {
         // 1. Identify/Create Customer
-        $customer = Customer::firstOrCreate(
-            ['no_hp' => $paymentData['customer_phone']],
-            [
-                'nama' => $paymentData['customer_name'],
-                'alamat' => $paymentData['customer_address'] ?? null
-            ]
-        );
+        if ($paymentData['customer_phone']) {
+            $customer = Customer::firstOrCreate(
+                ['no_hp' => $paymentData['customer_phone']],
+                [
+                    'nama' => $paymentData['customer_name'],
+                    'alamat' => $paymentData['customer_address'] ?? null
+                ]
+            );
+        } else {
+            // Find by name if phone is missing, ensuring we don't accidentally match someone with a phone
+            $customer = Customer::where('nama', $paymentData['customer_name'])
+                ->where(function ($q) {
+                    $q->whereNull('no_hp')->orWhere('no_hp', '');
+                })
+                ->first();
+
+            if (!$customer) {
+                $customer = Customer::create([
+                    'nama' => $paymentData['customer_name'],
+                    'no_hp' => null,
+                    'alamat' => $paymentData['customer_address'] ?? null
+                ]);
+            }
+        }
 
         $partialAmount = (int) ($paymentData['partial_amount'] ?? 0);
         $totalDebt = $sale->total - $partialAmount;

@@ -25,6 +25,10 @@ class DebtPage extends Component
     public $paymentNote = '';
     public $selectedDebt = null;
 
+    // History Modal State
+    public $showHistoryModal = false;
+    public $historyDebt = null;
+
     // Feedback States
     public $showSuccessModal = false;
     public $showErrorModal = false;
@@ -61,6 +65,14 @@ class DebtPage extends Component
         $this->paymentMethod = 'cash';
         $this->paymentNote = '';
         $this->showPaymentModal = true;
+    }
+
+    public function openHistoryModal($debtId)
+    {
+        $this->historyDebt = Debt::with(['payments' => function($q) {
+            $q->orderBy('paid_at', 'desc');
+        }])->find($debtId);
+        $this->showHistoryModal = true;
     }
 
     public function processPayment()

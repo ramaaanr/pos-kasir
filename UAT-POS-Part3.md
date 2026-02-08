@@ -154,7 +154,7 @@ Logs recorded: ⬜ Yes ⬜ No
 _________________________________________________________________
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass s
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -242,14 +242,14 @@ Reason shown: _________________________________________________
 
 ### Test Steps:
 **Setup:**
-1. Sebagai Admin, buat 2 batches untuk "Indomie Goreng":
+1. Sebagai Admin, buat 2 batches untuk "Indomie Kari Ayam":
    - Batch A: Tanggal Masuk = 5 hari lalu, Qty = 50
    - Batch B: Tanggal Masuk = hari ini, Qty = 50
 2. Logout, login sebagai Kasir
 
 **Test:**
 3. Buka halaman Transaksi (POS)
-4. Search "Indomie Goreng"
+4. Search "Indomie Kari Ayam"
 5. Tambah ke cart
 6. Set qty = 70 (lebih dari Batch A)
 7. Checkout dengan cash
@@ -270,7 +270,7 @@ FIFO working correctly? ⬜ Yes ⬜ No
 Total deducted: _______ (expected: 70)
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -302,7 +302,7 @@ Grand Total: Rp _____________ (expected: Rp 120.000)
 Match? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -354,7 +354,7 @@ Stock deducted? ⬜ Yes ⬜ No (harus Yes)
 Invoice generated? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -386,7 +386,7 @@ Total debt shown? ⬜ Yes ⬜ No
 Current debt customer: Rp _____________
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:**  ⬜ Blocked  
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -420,7 +420,7 @@ Auto-selected? ⬜ Yes ⬜ No
 Customer ID: _______
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:**  ⬜ Blocked  
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -453,7 +453,7 @@ Tampil di detail? ⬜ Yes ⬜ No
 Jaminan yang tersimpan: _______________________________________
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Blocked  
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -493,7 +493,7 @@ Remaining debt: Rp _____________ (expected: Rp 70.000)
 Customer total_debt: Rp _____________ (expected: Rp 70.000)
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass   
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -525,7 +525,7 @@ Debt payments count: _______ (expected: 0)
 Customer total_debt: Rp _____________ (expected: Rp 50.000)
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -548,7 +548,7 @@ Debt status: _____________ (expected: OPEN)
 Total paid: Rp _____________ (expected: Rp 0)
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -574,7 +574,7 @@ Total paid: Rp _____________
 Remaining: Rp _____________
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass   
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -610,7 +610,7 @@ Deducted: _______ (expected: 10)
 Stock terpotong? ⬜ Yes ⬜ No (harus Yes)
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -640,7 +640,7 @@ After debt 2: Rp _____________ (expected: Rp 80.000)
 Calculation correct? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -668,7 +668,7 @@ Transaksi tersimpan? ⬜ Yes ⬜ No (harus No)
 _________________________________________________________________
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass  
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -705,7 +705,7 @@ Print option available? ⬜ Yes ⬜ No
 Invoice content complete? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -768,7 +768,7 @@ Customer names shown: _________________________________________
 Case-insensitive working? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass  
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -794,7 +794,7 @@ Phone numbers shown: __________________________________________
 Partial search working? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass  
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -832,7 +832,7 @@ All debts OPEN/PARTIAL? ⬜ Yes ⬜ No
 Paid debts hidden? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -872,7 +872,7 @@ Debt moved to paid? ⬜ Yes ⬜ No
 Notification shown? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass   
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -911,7 +911,7 @@ Customer total_debt after: Rp _____________
 Still in debt list? ⬜ Yes ⬜ No (harus Yes)
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass 
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -943,7 +943,7 @@ _________________________________________________________________
 Payment tersimpan? ⬜ Yes ⬜ No (harus No)
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass  
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -993,7 +993,7 @@ Total payments recorded: _______ (expected: 3)
 Customer total_debt: Rp _____________ (expected: Rp 0)
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass  
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
@@ -1027,7 +1027,7 @@ After payment B: Rp _____________ (expected: Rp 20.000)
 Sync working? ⬜ Yes ⬜ No
 ```
 
-**Status:** ⬜ Pass | ⬜ Fail | ⬜ Partial | ⬜ Blocked  
+**Status:** ⬜ Pass  
 **Screenshot:** ⬜ Attached  
 **Notes:** _____________________________________________________
 
