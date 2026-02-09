@@ -96,7 +96,7 @@ class PrinterService
         $content .= "\n";
         $content .= $m . $this->centerText("Terima Kasih");
         $content .= $m . $this->centerText("Barang yang sudah dibeli");
-        $content .= $m . $this->centerText("tidak dapat ditukar/dikembalikan");
+        $content .= $m . $this->centerText("tidak dapat ditukar");
         $content .= "\n\n\n";
 
         return $content;
