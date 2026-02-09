@@ -51,4 +51,9 @@
     {{-- Part 3: Penjualan dan Hutang --}}
     <livewire:admin.admin-dashboard part="activity" />
 
+    <div class="mt-8 mb-10">
+        {{-- Backup Card --}}
+        <livewire:admin.backup-card />
+    </div>
+
 </x-layouts.admin>

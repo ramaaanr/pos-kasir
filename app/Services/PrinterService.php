@@ -2,180 +2,152 @@
 
 namespace App\Services;
 
-use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
-use Mike42\Escpos\Printer;
 use App\Models\Sale;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
 class PrinterService
 {
-    protected $printer;
-    protected $paperWidth = 32; // 58mm paper = 32 characters
+    protected $printerName = 'POS-58';
+    protected $paperWidth = 32;
 
     public function printInvoice(Sale $sale)
     {
         try {
-            // PENTING: Gunakan nama printer lokal, BUKAN network path
-            // Nama printer harus sesuai dengan yang ada di "Devices and Printers"
-            $printerName = 'POS-58';
-            
-            $connector = new WindowsPrintConnector($printerName);
-            $this->printer = new Printer($connector);
-
-            $this->printHeader();
-            $this->printInfo($sale);
-            $this->printItems($sale);
-            $this->printTotals($sale);
-            $this->printFooter();
-
-            // Cut paper
-            $this->printer->cut();
-            
-            // Close printer connection
-            $this->printer->close();
-            
-            return true;
-            
+            $content = $this->buildInvoiceContent($sale);
+            return $this->printViaPowerShell($content);
         } catch (Exception $e) {
             Log::error("Printing failed: " . $e->getMessage());
-            Log::error("Printer name: " . ($printerName ?? 'not set'));
-            
-            // Pastikan printer ditutup meskipun error
-            if (isset($this->printer)) {
-                try {
-                    $this->printer->close();
-                } catch (Exception $closeError) {
-                    // Ignore close error
-                }
-            }
-            
             throw new Exception("Gagal mencetak: " . $e->getMessage());
         }
     }
 
-    protected function printHeader()
+    protected function buildInvoiceContent(Sale $sale)
     {
-        $this->printer->setJustification(Printer::JUSTIFY_CENTER);
-        $this->printer->setEmphasis(true);
-        $this->printer->text("UD.SEPAN\n");
-        $this->printer->setEmphasis(false);
-        $this->printer->setTextSize(1, 1);
-        $this->printer->text("JL. ANTANG JUNGAN\n");
-        $this->printer->text("KECAMATAN RUNGAN HULU\n");
-        $this->printer->text("KABUPATEN GUNUNG MAS\n");
-        $this->printer->text(str_repeat('-', $this->paperWidth) . "\n");
-        $this->printer->setEmphasis(true);
-        $this->printer->text("INVOICE\n");
-        $this->printer->setEmphasis(false);
-        $this->printer->feed();
-    }
+        $content = "";
 
-    protected function printInfo(Sale $sale)
-    {
-        $this->printer->setJustification(Printer::JUSTIFY_LEFT);
-        $this->printer->text("No : " . ($sale->invoice_number ?? '-') . "\n");
-        $this->printer->text("Tgl: " . $sale->created_at->format('d/m/Y H:i') . "\n");
-        $this->printer->text("Ksr: " . ($sale->user->name ?? 'System') . "\n");
-        $this->printer->text("Byr: " . strtoupper($sale->payment_method ?? 'CASH') . "\n");
-        $this->printer->text(str_repeat('-', $this->paperWidth) . "\n");
-    }
+        // Header (Center)
+        $content .= $this->centerText("UD.SEPAN");
+        $content .= $this->centerText("JL. ANTANG JUNGAN");
+        $content .= $this->centerText("KECAMATAN RUNGAN HULU");
+        $content .= $this->centerText("KABUPATEN GUNUNG MAS");
+        $content .= str_repeat('-', $this->paperWidth) . "\n";
+        $content .= $this->centerText("INVOICE");
+        $content .= "\n";
 
-    protected function printItems(Sale $sale)
-    {
-        $this->printer->setJustification(Printer::JUSTIFY_LEFT);
-        
-        foreach ($sale->items as $item) {
-            $name = $item->product->nama ?? 'Produk';
-            $qty = ($item->qty_base ?? 0) / ($item->unit_multiplier ?? 1);
-            $unit = $item->unit_label ?? 'pcs';
-            $price = ($item->harga_jual_per_unit ?? 0) * ($item->unit_multiplier ?? 1);
-            $subtotal = $item->subtotal ?? 0;
+        // Info
+        $content .= "No : " . ($sale->invoice_number ?? '-') . "\n";
+        $content .= "Tgl: " . $sale->created_at->format('d/m/Y H:i') . "\n";
+        $content .= "Ksr: " . ($sale->user->name ?? 'System') . "\n";
+        $content .= "Byr: " . strtoupper($sale->payment_method ?? 'CASH') . "\n";
+        $content .= str_repeat('-', $this->paperWidth) . "\n";
 
-            // Print product name (bold)
-            $this->printer->setEmphasis(true);
-            
-            // Potong nama produk jika terlalu panjang
-            if (strlen($name) > $this->paperWidth) {
-                $name = substr($name, 0, $this->paperWidth - 3) . "...";
+        // Items
+        if ($sale->items && $sale->items->count() > 0) {
+            foreach ($sale->items as $item) {
+                $name = $item->product->nama ?? 'Produk';
+                $qty = ($item->qty_base ?? 0) / ($item->unit_multiplier ?? 1);
+                $unit = $item->unit_label ?? 'pcs';
+                $price = ($item->harga_jual_per_unit ?? 0) * ($item->unit_multiplier ?? 1);
+                $subtotal = $item->subtotal ?? 0;
+
+                // Potong nama jika terlalu panjang
+                if (mb_strlen($name) > $this->paperWidth) {
+                    $name = mb_substr($name, 0, $this->paperWidth - 3) . "...";
+                }
+
+                $content .= $name . "\n";
+
+                $qtyStr = number_format((float)$qty, 0, ',', '.');
+                $priceStr = number_format((float)$price, 0, ',', '.');
+                $subtotalStr = number_format((float)$subtotal, 0, ',', '.');
+
+                $leftPart = "$qtyStr $unit x $priceStr";
+                $content .= $this->textToRight($leftPart, $subtotalStr);
             }
-            
-            $this->printer->text("$name\n");
-            $this->printer->setEmphasis(false);
-            
-            // Format qty dan price - FIX: Handle null values
-            $qtyStr = number_format((float)$qty, 0, ',', '.');
-            $priceStr = number_format((float)$price, 0, ',', '.');
-            $subtotalStr = number_format((float)$subtotal, 0, ',', '.');
-            
-            // Format: "2 Pcs x 50.000      100.000"
-            $leftPart = "$qtyStr $unit x $priceStr";
-            
-            $this->textToRight($leftPart, $subtotalStr);
+        } else {
+            $content .= "(Tidak ada item)\n";
         }
-        
-        $this->printer->text(str_repeat('-', $this->paperWidth) . "\n");
-    }
 
-    protected function printTotals(Sale $sale)
-    {
-        // FIX: Handle null values dengan default 0
+        $content .= str_repeat('-', $this->paperWidth) . "\n";
+
+        // Totals
         $total = number_format((float)($sale->total ?? 0), 0, ',', '.');
-        $this->textToRight("TOTAL", "Rp $total", true);
+        $content .= $this->textToRight("TOTAL", "Rp $total");
 
         if ($sale->payment_method === 'cash') {
             $paid = number_format((float)($sale->cash_received ?? 0), 0, ',', '.');
             $change = number_format((float)($sale->cash_change ?? 0), 0, ',', '.');
-            
-            $this->textToRight("BAYAR", "Rp $paid");
-            $this->textToRight("KEMBALI", "Rp $change", true);
+
+            $content .= $this->textToRight("BAYAR", "Rp $paid");
+            $content .= $this->textToRight("KEMBALI", "Rp $change");
         } else {
-            // Debt
             $customer = $sale->customer->nama ?? '-';
             $paid = number_format((float)($sale->total_paid ?? 0), 0, ',', '.');
             $debt = number_format((float)(($sale->total ?? 0) - ($sale->total_paid ?? 0)), 0, ',', '.');
 
-            $this->printer->text("Pelanggan: $customer\n");
-            $this->textToRight("BAYAR (DP)", "Rp $paid");
-            $this->textToRight("SISA HUTANG", "Rp $debt", true);
+            $content .= "Pelanggan: $customer\n";
+            $content .= $this->textToRight("BAYAR (DP)", "Rp $paid");
+            $content .= $this->textToRight("SISA HUTANG", "Rp $debt");
+        }
+
+        // Footer
+        $content .= "\n";
+        $content .= $this->centerText("Terima Kasih");
+        $content .= $this->centerText("Barang yang sudah dibeli");
+        $content .= $this->centerText("tidak dapat ditukar/dikembalikan");
+        $content .= "\n\n\n";
+
+        return $content;
+    }
+
+    protected function printViaPowerShell($content)
+    {
+        try {
+            $tempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'invoice_' . uniqid() . '.txt';
+
+            // Tulis content ke file
+            file_put_contents($tempFile, $content);
+
+            // Print menggunakan PowerShell Out-Printer
+            $command = 'powershell -Command "Get-Content \"' . $tempFile . '\" -Raw | Out-Printer -Name \"' . $this->printerName . '\""';
+
+            exec($command, $output, $return);
+
+            // Tunggu sebentar sebelum hapus file
+            sleep(1);
+
+            // Hapus temporary file
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+
+            if ($return !== 0) {
+                throw new Exception("Print command failed with return code: $return");
+            }
+
+            return true;
+        } catch (Exception $e) {
+            throw new Exception("PowerShell print error: " . $e->getMessage());
         }
     }
 
-    protected function printFooter()
+    protected function centerText($text)
     {
-        $this->printer->feed();
-        $this->printer->setJustification(Printer::JUSTIFY_CENTER);
-        $this->printer->text("Terima Kasih\n");
-        $this->printer->text("Barang yang sudah dibeli\n");
-        $this->printer->text("tidak dapat ditukar/dikembalikan\n");
-        $this->printer->feed(3);
+        $padding = floor(($this->paperWidth - mb_strlen($text)) / 2);
+        return str_repeat(' ', max(0, $padding)) . $text . "\n";
     }
 
-    /**
-     * Helper untuk align text ke kanan
-     */
-    private function textToRight($left, $right, $bold = false)
+    protected function textToRight($left, $right)
     {
-        if ($bold) {
-            $this->printer->setEmphasis(true);
-        }
-        
-        // Hitung panjang text
         $lenLeft = mb_strlen($left);
         $lenRight = mb_strlen($right);
-        
-        // Hitung jumlah spasi yang dibutuhkan
         $spaces = $this->paperWidth - $lenLeft - $lenRight;
-        
-        // Minimal 1 spasi
+
         if ($spaces < 1) {
             $spaces = 1;
         }
-        
-        $this->printer->text($left . str_repeat(' ', $spaces) . $right . "\n");
-        
-        if ($bold) {
-            $this->printer->setEmphasis(false);
-        }
+
+        return $left . str_repeat(' ', $spaces) . $right . "\n";
     }
 }

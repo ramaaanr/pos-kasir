@@ -32,7 +32,7 @@ class ReportService
             // Total masuk ke kasir sistem (Cash + DP dari Hutang)
             'total_masuk_kas' => (clone $query)->where('payment_method', 'cash')->sum('total') + (clone $query)->where('payment_method', 'debt')->sum('total_paid'),
             'transaction_count' => $query->count(),
-            'method_summary' => $query->select('payment_method', DB::raw('count(*) as count'), DB::raw('sum(total) as total'))
+            'method_summary' => (clone $query)->select('payment_method', DB::raw('count(*) as count'), DB::raw('sum(total) as total'))
                 ->groupBy('payment_method')
                 ->get(),
             'transactions' => $query->with('user')->latest()->take(100)->get()
