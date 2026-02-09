@@ -21,6 +21,8 @@ class BackupCard extends Component
         } catch (\Exception $e) {
             session()->flash('error', 'Terjadi kesalahan saat backup: ' . $e->getMessage());
         }
+
+        $this->dispatch('backup-completed');
     }
 
     public function getLastBackupProperty()

@@ -65,7 +65,7 @@ class ReportPage extends Component
         $this->resetPage();
     }
 
-    public function exportExcel()
+    public function prepareExportData()
     {
         $service = new ReportService();
         $data = [];
@@ -73,6 +73,7 @@ class ReportPage extends Component
 
         switch ($this->selectedReport) {
             case 'stok_realtime':
+                $filename = "Stok Realtime - " . date('Y-m-d H-i') . ".xlsx";
                 $data = $service->getRealtimeStockReport()->map(fn($p) => [
                     'Produk' => $p->nama,
                     'Kode' => $p->kode_produk,
@@ -82,6 +83,7 @@ class ReportPage extends Component
                 ])->toArray();
                 break;
             case 'penjualan_periode':
+                $filename = "Penjualan Periode - " . date('Y-m-d', strtotime($this->startDate)) . " to " . date('Y-m-d', strtotime($this->endDate)) . ".xlsx";
                 $data = $service->getPeriodicSalesReport($this->startDate, $this->endDate)->map(fn($s) => [
                     'Tanggal' => $s->created_at->format('d/m/Y H:i'),
                     'Invoice' => $s->invoice_number,
@@ -92,6 +94,7 @@ class ReportPage extends Component
                 ])->toArray();
                 break;
             case 'fifo_pnl':
+                $filename = "PnL FIFO - " . date('Y-m-d', strtotime($this->startDate)) . " to " . date('Y-m-d', strtotime($this->endDate)) . ".xlsx";
                 $data = collect($service->getProfitMarginReport($this->startDate, $this->endDate))->map(fn($r) => [
                     'Tanggal' => date('d/m/Y H:i', strtotime($r->created_at)),
                     'Invoice' => $r->invoice_number,
@@ -102,6 +105,7 @@ class ReportPage extends Component
                 ])->toArray();
                 break;
             case 'hutang_outstanding':
+                $filename = "Hutang Outstanding - " . date('Y-m-d H-i') . ".xlsx";
                 $data = $service->getOutstandingDebtReport()->map(fn($d) => [
                     'Nama Customer' => $d->customer->nama ?? 'Guest',
                     'Jaminan' => $d->jaminan,
@@ -111,6 +115,7 @@ class ReportPage extends Component
                 ])->toArray();
                 break;
             case 'pembayaran_hutang':
+                $filename = "Pembayaran Hutang - " . date('Y-m-d', strtotime($this->startDate)) . " to " . date('Y-m-d', strtotime($this->endDate)) . ".xlsx";
                 $data = $service->getDebtPaymentReport($this->startDate, $this->endDate)->map(fn($p) => [
                     'Waktu' => $p->paid_at->format('d/m/Y H:i'),
                     'Customer' => $p->customer->nama ?? '-',
@@ -120,6 +125,7 @@ class ReportPage extends Component
                 ])->toArray();
                 break;
             case 'rekap_shift':
+                $filename = "Rekap Shift - " . date('Y-m-d', strtotime($this->startDate)) . ".xlsx";
                 $data = ShiftReport::whereDate('start_time', $this->startDate)
                     ->with('user')
                     ->get()
@@ -135,6 +141,7 @@ class ReportPage extends Component
                     ])->toArray();
                 break;
             case 'inventory_valuation':
+                $filename = "Valuasi Inventory - " . date('Y-m-d H-i') . ".xlsx";
                 $data = $service->getInventoryValuationReport()->map(fn($r) => [
                     'Produk' => $r['nama'],
                     'Stok' => $r['total_stock'],
@@ -143,6 +150,7 @@ class ReportPage extends Component
                 ])->toArray();
                 break;
             case 'debt_aging':
+                $filename = "Aging Hutang - " . date('Y-m-d H-i') . ".xlsx";
                 $data = $service->getDebtAgingReport()->map(fn($r) => [
                     'Customer' => $r['customer_name'],
                     'Hutang 0-30 Hari' => $r['aging']['current'],
@@ -152,6 +160,7 @@ class ReportPage extends Component
                 ])->toArray();
                 break;
             case 'cashier_performance':
+                 $filename = "Performa Kasir - " . date('Y-m-d', strtotime($this->startDate)) . " to " . date('Y-m-d', strtotime($this->endDate)) . ".xlsx";
                 $data = $service->getCashierPerformanceReport($this->startDate, $this->endDate)->map(fn($r) => [
                     'Kasir' => $r->name,
                     'JML Transaksi' => $r->transaction_count,
@@ -161,6 +170,7 @@ class ReportPage extends Component
                 ])->toArray();
                 break;
             case 'slow_moving_stock':
+                $filename = "Slow Moving Stock - " . date('Y-m-d H-i') . ".xlsx";
                 $data = $service->getSlowMovingReport()->map(fn($r) => [
                     'Produk' => $r['nama'],
                     'Stok Saat Ini' => $r['total_stock'],
@@ -170,6 +180,7 @@ class ReportPage extends Component
                 ])->toArray();
                 break;
             case 'fifo_compliance':
+                $filename = "FIFO Compliance - " . date('Y-m-d H-i') . ".xlsx";
                 $data = collect($service->getFIFOComplianceReport())->map(fn($r) => [
                     'Waktu Jual' => date('d/m/Y H:i', strtotime($r->sale_date)),
                     'Invoice' => $r->invoice_number,
@@ -180,9 +191,88 @@ class ReportPage extends Component
                 break;
         }
 
-        if (empty($data)) return;
+        return ['data' => $data, 'filename' => $filename];
+    }
 
-        return Excel::download(new ReportExport($data), $filename);
+    public function exportExcel()
+    {
+        $export = $this->prepareExportData();
+        if (empty($export['data'])) return;
+
+        return Excel::download(new ReportExport($export['data']), $export['filename']);
+    }
+
+    public function uploadToDrive()
+    {
+        try {
+            $export = $this->prepareExportData();
+            if (empty($export['data'])) {
+                $this->dispatch('upload-error', message: 'Tidak ada data untuk diupload.');
+                return;
+            }
+
+            // 1. Generate Excel content
+            // Use Excel::raw to get content strings, then write manually to ensure path correctness
+            $fileName = $export['filename'];
+            $tempPath = storage_path('app/temp/' . $fileName);
+            
+            // Ensure temp dir exists
+            $tempDir = dirname($tempPath);
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+
+            $content = Excel::raw(new ReportExport($export['data']), \Maatwebsite\Excel\Excel::XLSX);
+            file_put_contents($tempPath, $content);
+
+            if (!file_exists($tempPath)) {
+                throw new \Exception("Gagal membuat file temporary: $tempPath");
+            }
+
+            // 2. Determine Local Drive Path
+            // Mapping Report Key to Folder Name
+            $folderMap = [
+                'shift_harian' => 'Shift Harian Kasir',
+                'stok_realtime' => 'Stok Real-time',
+                'penjualan_periode' => 'Penjualan Periode',
+                'fifo_pnl' => 'PnL FIFO',
+                'hutang_outstanding' => 'Hutang Outstanding',
+                'pembayaran_hutang' => 'Riwayat Pembayaran',
+                'rekap_shift' => 'Rekap Shift',
+                'fifo_compliance' => 'FIFO Compliance',
+                'inventory_valuation' => 'Inventory Valuation',
+                'debt_aging' => 'Aging Hutang',
+                'cashier_performance' => 'Performa Kasir',
+                'slow_moving_stock' => 'Slow Moving Stock',
+            ];
+
+            $folderName = $folderMap[$this->selectedReport] ?? 'Lainnya';
+            $driveBasePath = 'H:\My Drive\TOKPOS\reports';
+            $targetFolder = $driveBasePath . DIRECTORY_SEPARATOR . $folderName;
+            
+            // 3. Create Target Directory if not exists
+            if (!file_exists($targetFolder)) {
+                // Suppress warning for mkdir if drive is disconnected/missing to handle it gracefully in catch
+                if (!@mkdir($targetFolder, 0777, true)) {
+                    $error = error_get_last();
+                    throw new \Exception("Gagal membuat folder di Google Drive. Pastikan Drive H: terhubung. (" . ($error['message'] ?? '') . ")");
+                }
+            }
+
+            // 4. Copy File
+            $destination = $targetFolder . DIRECTORY_SEPARATOR . $fileName;
+
+            if (copy($tempPath, $destination)) {
+                // Cleanup temp
+                @unlink($tempPath);
+                $this->dispatch('upload-success', message: "Berhasil upload ke: $folderName");
+            } else {
+                throw new \Exception("Gagal menyalin file ke Google Drive.");
+            }
+
+        } catch (\Exception $e) {
+            $this->dispatch('upload-error', message: 'Upload Gagal: ' . $e->getMessage());
+        }
     }
 
     public function getReportDataProperty()

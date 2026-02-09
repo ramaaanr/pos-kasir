@@ -15,6 +15,80 @@
         </div>
     </div>
 
+    {{-- Global Upload Drive Loading Overlay --}}
+    <div wire:loading.flex wire:target="uploadToDrive" class="fixed inset-0 z-[9999] items-center justify-center bg-background/80 backdrop-blur-md">
+        <div class="bg-card p-8 rounded-3xl border border-border shadow-2xl flex flex-col items-center gap-4 max-w-xs w-full animate-in zoom-in duration-300">
+            <div class="relative">
+                <div class="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <x-lucide-hard-drive-upload class="w-6 h-6 text-blue-500 animate-pulse" />
+                </div>
+            </div>
+            <div class="text-center">
+                <h3 class="font-black text-foreground text-lg tracking-tight">Mengupload ke Drive</h3>
+                <p class="text-xs text-muted-foreground font-medium mt-1">Sedang menyimpan file ke Google Drive...</p>
+            </div>
+        </div>
+    </div>
+
+    {{-- Success Modal --}}
+    <div x-data="{ show: false, message: '' }" 
+         @upload-success.window="show = true; message = $event.detail.message; setTimeout(() => show = false, 3000)" 
+         x-show="show" 
+         style="display: none;"
+         class="fixed inset-0 z-[9999] flex items-center justify-center px-4 bg-background/80 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+         
+        <div class="bg-card p-6 rounded-2xl border border-border shadow-xl w-full max-w-sm animate-in zoom-in-95 duration-200">
+            <div class="flex flex-col items-center text-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <x-lucide-check class="w-6 h-6 text-emerald-600" />
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg">Berhasil Upload</h3>
+                    <p class="text-sm text-muted-foreground mt-1" x-text="message"></p>
+                </div>
+                <button @click="show = false" class="mt-2 w-full py-2 bg-muted hover:bg-muted/80 rounded-lg text-sm font-medium transition-colors">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- Error Modal --}}
+    <div x-data="{ show: false, message: '' }" 
+         @upload-error.window="show = true; message = $event.detail.message" 
+         x-show="show" 
+         style="display: none;"
+         class="fixed inset-0 z-[9999] flex items-center justify-center px-4 bg-background/80 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+         
+        <div class="bg-card p-6 rounded-2xl border border-destructive/20 shadow-xl w-full max-w-sm animate-in zoom-in-95 duration-200">
+            <div class="flex flex-col items-center text-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                    <x-lucide-x class="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg text-destructive">Gagal Upload</h3>
+                    <p class="text-sm text-muted-foreground mt-1" x-text="message"></p>
+                </div>
+                <button @click="show = false" class="mt-2 w-full py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg text-sm font-medium transition-colors">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="animate-fade-in space-y-4">
         {{-- Header Section with Filters (Compact) --}}
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between bg-card p-4 rounded-2xl border border-border/50 shadow-sm relative group overflow-hidden">
@@ -46,12 +120,17 @@
 
                 <div class="flex items-center p-0.5 bg-muted/30 rounded-lg border border-border/50">
                     @if($selectedReport !== 'shift_harian')
-                    <button wire:click="exportExcel" wire:loading.attr="disabled" class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600/10 text-emerald-600 text-[10px] font-black rounded-lg hover:bg-emerald-600 hover:text-white transition-all uppercase disabled:opacity-50">
+                    <button wire:click="exportExcel" wire:loading.attr="disabled" wire:target="exportExcel" class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600/10 text-emerald-600 text-[10px] font-black rounded-lg hover:bg-emerald-600 hover:text-white transition-all uppercase disabled:opacity-50">
                         <x-lucide-file-spreadsheet class="w-3.5 h-3.5" />
                         <span>Excel</span>
                     </button>
+                    {{-- Upload to Drive Button --}}
+                    <button wire:click="uploadToDrive" wire:loading.attr="disabled" wire:target="uploadToDrive" class="ml-1 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600/10 text-blue-600 text-[10px] font-black rounded-lg hover:bg-blue-600 hover:text-white transition-all uppercase disabled:opacity-50">
+                        <x-lucide-hard-drive-upload class="w-3.5 h-3.5" />
+                        <span>Drive</span>
+                    </button>
                     @endif
-                    <button @click="window.print()" class="inline-flex items-center gap-1.5 px-4 py-2 text-muted-foreground hover:text-primary text-[10px] font-black rounded-lg transition-all uppercase">
+                    <button @click="window.print()" class="ml-1 inline-flex items-center gap-1.5 px-4 py-2 text-muted-foreground hover:text-primary text-[10px] font-black rounded-lg transition-all uppercase">
                         <x-lucide-printer class="w-3.5 h-3.5" />
                         <span>Cetak</span>
                     </button>

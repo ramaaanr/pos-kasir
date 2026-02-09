@@ -5,90 +5,110 @@ namespace App\Services;
 use App\Models\BackupHistory;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
+use Exception;
 
 class BackupService
 {
     public function backup()
     {
-        // Format Nama File: backup_mysql_2026-02-09_14-30-05_kasir_fifo.sql
         $timestamp = Carbon::now()->format('Y-m-d_H-i-s');
         $dbName = env('DB_DATABASE', 'kasir_fifo');
         $filename = "backup_mysql_{$timestamp}_{$dbName}.sql";
 
-        // --- DEFINISI 3 LOKASI PENYIMPANAN ---
         $destinations = [
             'App Storage' => storage_path('app/backups'),
             'Local Documents' => 'C:\Documents\TOKPOS\Backups',
-            'Google Drive' => 'G:\My Drive\TOKPOS'
+            'Google Drive' => 'H:\My Drive\TOKPOS' // Pastikan Drive H: sudah termount
         ];
 
-        // Path utama untuk proses mysqldump (kita pakai lokasi pertama sebagai master)
         $mainPath = $destinations['App Storage'] . DIRECTORY_SEPARATOR . $filename;
-
-        // Pastikan semua folder tujuan tersedia
-        foreach ($destinations as $label => $folder) {
-            if (!file_exists($folder)) {
-                mkdir($folder, 0755, true);
-            }
-        }
-
-        // --- PROSES MYSQLDUMP ---
-        $mysqldump = '"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe"';
-        $dbUser = env('DB_USERNAME', 'root');
-        $dbPass = env('DB_PASSWORD', '');
-        $dbHost = env('DB_HOST', '127.0.0.1');
-        $dbPort = env('DB_PORT', '3307');
-
-        $command = "{$mysqldump} --host={$dbHost} --port={$dbPort} --user={$dbUser} --password=\"{$dbPass}\" {$dbName} --no-tablespaces > \"{$mainPath}\" 2>&1";
-
-        $output = [];
-        $resultCode = null;
+        $logs = [];
 
         try {
-            exec($command, $output, $resultCode);
+            // --- 1. VALIDASI FILE MYSQLDUMP ---
+            // $mysqldumpPath = 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe';
+            $mysqldumpPath = 'C:\xampp\mysql\bin\mysqldump.exe';
+            if (!file_exists($mysqldumpPath)) {
+                throw new Exception("Tool mysqldump tidak ditemukan di: {$mysqldumpPath}");
+            }
+            $mysqldump = '"' . $mysqldumpPath . '"';
 
-            if ($resultCode === 0 && file_exists($mainPath) && filesize($mainPath) > 0) {
-                
-                // --- PROSES COPY KE LOKASI LAIN ---
-                $successLogs = ["Proses dump berhasil."];
-                
-                foreach ($destinations as $label => $folder) {
-                    if ($label === 'App Storage') continue; // Lewati karena ini file master
-
-                    $targetPath = $folder . DIRECTORY_SEPARATOR . $filename;
-                    
-                    if (copy($mainPath, $targetPath)) {
-                        $successLogs[] = "Berhasil disalin ke: {$label}";
-                    } else {
-                        $successLogs[] = "GAGAL salin ke: {$label}";
-                        Log::warning("Gagal menyalin backup ke {$label}");
+            // --- 2. VALIDASI & PEMBUATAN FOLDER ---
+            foreach ($destinations as $label => $folder) {
+                if (!file_exists($folder)) {
+                    if (!mkdir($folder, 0755, true)) {
+                        throw new Exception("Gagal membuat folder tujuan {$label}: {$folder}");
                     }
                 }
-
-                // Catat di Database
-                BackupHistory::create([
-                    'filename' => $filename,
-                    'path'     => 'backups/' . $filename,
-                    'size'     => $this->formatSize(filesize($mainPath)),
-                    'status'   => 'success',
-                    'notes'    => implode(" | ", $successLogs)
-                ]);
-
-                return [
-                    'success' => true,
-                    'message' => 'Backup sukses tersimpan di 3 lokasi!',
-                    'details' => $successLogs
-                ];
-
-            } else {
-                $errorMessage = implode("\n", $output);
-                Log::error("Backup Gagal: " . $errorMessage);
-                return ['success' => false, 'message' => 'Gagal membuat dump: ' . $errorMessage];
+                if (!is_writable($folder)) {
+                    throw new Exception("Folder {$label} tidak dapat ditulis (Permission Denied): {$folder}");
+                }
             }
 
-        } catch (\Exception $e) {
-            Log::error('Exception Backup: ' . $e->getMessage());
-            return ['success' => false, 'message' => $e->getMessage()];
+            // --- 3. EKSEKUSI MYSQLDUMP ---
+            $dbUser = env('DB_USERNAME', 'root');
+            $dbPass = env('DB_PASSWORD', '');
+            $dbHost = env('DB_HOST', '127.0.0.1');
+            $dbPort = env('DB_PORT', '3307');
+
+            // Gunakan --result-file agar lebih stabil di Windows daripada operator >
+            $command = "{$mysqldump} --host={$dbHost} --port={$dbPort} --user={$dbUser} --password=\"{$dbPass}\" {$dbName} --no-tablespaces --result-file=\"{$mainPath}\" 2>&1";
+
+            $output = [];
+            $resultCode = null;
+            exec($command, $output, $resultCode);
+
+            if ($resultCode !== 0) {
+                $cmdError = implode("\n", $output);
+                throw new Exception("MySQLDump Exit Code {$resultCode}. Pesan: {$cmdError}");
+            }
+
+            if (!file_exists($mainPath) || filesize($mainPath) === 0) {
+                throw new Exception("File backup berhasil dibuat tapi kosong atau tidak ditemukan di: {$mainPath}");
+            }
+
+            $logs[] = "Master dump berhasil dibuat.";
+
+            // --- 4. PROSES PENYALINAN (COPY) ---
+            foreach ($destinations as $label => $folder) {
+                if ($label === 'App Storage') continue;
+
+                $targetPath = $folder . DIRECTORY_SEPARATOR . $filename;
+                if (copy($mainPath, $targetPath)) {
+                    $logs[] = "Berhasil ke {$label}";
+                } else {
+                    $error = error_get_last();
+                    $logs[] = "Gagal ke {$label} (Cek Google Drive/Permissions: " . ($error['message'] ?? 'Unknown') . ")";
+                }
+            }
+
+            // Simpan riwayat sukses
+            BackupHistory::create([
+                'filename' => $filename,
+                'path'     => 'backups/' . $filename,
+                'size'     => $this->formatSize(filesize($mainPath)),
+                'status'   => 'success',
+                'notes'    => implode(" | ", $logs)
+            ]);
+
+            return ['success' => true, 'message' => 'Backup tuntas!', 'details' => $logs];
+
+        } catch (Exception $e) {
+            $errorDetail = "ERROR BACKUP: " . $e->getMessage();
+            Log::error($errorDetail);
+
+            BackupHistory::create([
+                'filename' => $filename,
+                'path'     => 'backups/' . $filename,
+                'size'     => '0 B',
+                'status'   => 'failed',
+                'notes'    => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => $e->getMessage()
+            ];
         }
     }
 
