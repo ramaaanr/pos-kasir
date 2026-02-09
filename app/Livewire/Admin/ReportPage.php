@@ -247,7 +247,7 @@ class ReportPage extends Component
             ];
 
             $folderName = $folderMap[$this->selectedReport] ?? 'Lainnya';
-            $driveBasePath = 'H:\My Drive\TOKPOS\reports';
+            $driveBasePath = config('custom_backup.destinations.drive') . DIRECTORY_SEPARATOR . 'reports';
             $targetFolder = $driveBasePath . DIRECTORY_SEPARATOR . $folderName;
             
             // 3. Create Target Directory if not exists
@@ -255,7 +255,7 @@ class ReportPage extends Component
                 // Suppress warning for mkdir if drive is disconnected/missing to handle it gracefully in catch
                 if (!@mkdir($targetFolder, 0777, true)) {
                     $error = error_get_last();
-                    throw new \Exception("Gagal membuat folder di Google Drive. Pastikan Drive H: terhubung. (" . ($error['message'] ?? '') . ")");
+                    throw new \Exception("Gagal membuat folder di Google Drive. Pastikan path drive terhubung: $driveBasePath. (" . ($error['message'] ?? '') . ")");
                 }
             }
 
