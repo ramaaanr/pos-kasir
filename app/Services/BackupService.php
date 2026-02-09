@@ -33,16 +33,31 @@ class BackupService
             $mysqldump = '"' . $mysqldumpPath . '"';
 
             // --- 2. VALIDASI & PEMBUATAN FOLDER ---
-            foreach ($destinations as $label => $folder) {
-                if (!file_exists($folder)) {
-                    if (!mkdir($folder, 0755, true)) {
-                        throw new Exception("Gagal membuat folder tujuan {$label}: {$folder}");
-                    }
-                }
-                if (!is_writable($folder)) {
-                    throw new Exception("Folder {$label} tidak dapat ditulis (Permission Denied): {$folder}");
-                }
+foreach ($destinations as $label => $folder) {
+    try {
+        if (!file_exists($folder)) {
+            // Gunakan @ untuk meredam warning bawaan agar bisa kita handle manual
+            if (!@mkdir($folder, 0755, true)) {
+                $error = error_get_last();
+                $sysMsg = $error['message'] ?? 'Tidak ada pesan sistem';
+                
+                // Log detail ke laravel.log
+                Log::error("Gagal mkdir di {$label}. Path: {$folder}. Error: {$sysMsg}");
+                
+                // Lempar exception agar muncul di UI/Console
+                throw new Exception("Izin Ditolak saat membuat folder [{$label}]. Lokasi: {$folder}. Pesan OS: {$sysMsg}");
             }
+            $logs[] = "Folder {$label} berhasil dibuat.";
+        }
+
+        if (!is_writable($folder)) {
+            throw new Exception("Folder [{$label}] ada tapi TIDAK BISA DITULIS: {$folder}");
+        }
+    } catch (Exception $e) {
+        // Langsung lempar ke catch utama agar tercatat di tabel BackupHistory
+        throw $e;
+    }
+}
 
             // --- 3. EKSEKUSI MYSQLDUMP ---
             $dbUser = env('DB_USERNAME', 'root');
