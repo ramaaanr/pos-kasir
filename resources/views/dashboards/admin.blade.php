@@ -1,16 +1,14 @@
-<x-layouts.admin title="Dashboard Utama" subtitle="Ringkasan performa dan akses cepat fitur">
-
-    {{-- Welcome Message --}}
-    <div class="mb-8 animate-fade-in opacity-0">
-        <h2 class="text-2xl font-black text-foreground flex items-center gap-3">
-            <span class="w-2 h-8 bg-primary rounded-full"></span>
-            Selamat Datang, Admin! 👋
-        </h2>
+<x-layouts.admin>
+    <div class="mb-10">
+        <h1 class="text-4xl font-black text-foreground tracking-tight">Admin Dashboard</h1>
         <p class="text-muted-foreground mt-1 text-sm font-medium">Sistem siap digunakan. Berikut adalah ringkasan hari ini.</p>
     </div>
 
-    {{-- Feature Cards Grid --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+    {{-- Part 1: Statistik --}}
+    <livewire:admin.admin-dashboard part="stats" />
+
+    {{-- Part 2: Fitur2 / Shortcut Cards --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10 mt-10">
         <x-admin.card
             title="Master Produk"
             icon="package"
@@ -32,8 +30,15 @@
         <x-admin.card
             title="Laporan"
             icon="bar-chart-3"
-            disabled="true"
+            color="orange"
+            href="{{ route('admin.reports.index') }}"
             delay="delay-400" />
+        <x-admin.card
+            title="Data Penjualan"
+            icon="receipt"
+            color="indigo"
+            href="{{ route('admin.sales.index') }}"
+            delay="delay-500" />
         <x-admin.card
             title="Stock Adjustment"
             icon="clipboard-edit"
@@ -43,6 +48,7 @@
             delay="delay-500" />
     </div>
 
-
+    {{-- Part 3: Penjualan dan Hutang --}}
+    <livewire:admin.admin-dashboard part="activity" />
 
 </x-layouts.admin>

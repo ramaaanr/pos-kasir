@@ -277,6 +277,7 @@
     <div
         x-data="{ show: @entangle('showModal') }"
         x-show="show"
+        @keydown.enter.prevent
         class="fixed inset-0 z-[100] overflow-y-auto"
         style="display: none;">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
@@ -361,6 +362,7 @@
                                 <input
                                     type="text"
                                     wire:model="kode_produk"
+                                    @keydown.enter.prevent
                                     placeholder="Klik untuk scan / generate barcode"
                                     class="flex h-10 w-full rounded-lg border-2 border-primary/20 bg-background/50 pl-3 pr-10 py-2 text-sm font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 transition-all cursor-pointer hover:border-primary/40">
                                 <button

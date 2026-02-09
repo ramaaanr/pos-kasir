@@ -237,10 +237,12 @@
                         <div class="relative">
                             <input
                                 type="text"
-                                wire:model.live.debounce.300ms="productSearch"
+                                wire:model.live.debounce.500ms="productSearch"
+                                wire:keydown.enter="selectFirstResult"
+                                @keydown.enter.prevent
                                 @focus="searchOpen = true"
                                 @click.away="searchOpen = false"
-                                placeholder="Ketik nama produk..."
+                                placeholder="Ketik min. 3 huruf..."
                                 class="flex h-10 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
                                 :disabled="isEdit">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -254,26 +256,73 @@
 
                             {{-- Search Dropdown --}}
                             <div
-                                x-show="searchOpen && $wire.productSearch.length >= 2"
+                                x-show="searchOpen && $wire.productSearch.length >= 3"
                                 class="absolute z-[110] mt-1 w-full bg-card border border-border rounded-lg shadow-xl py-1"
                                 style="display: none;">
-                                @forelse($searchProducts as $p)
-                                <button
-                                    type="button"
-                                    wire:click="selectProduct({{ $p->id }})"
-                                    @click="searchOpen = false"
-                                    class="flex w-full items-center gap-3 px-3 py-2 text-sm hover:bg-muted transition-colors text-left">
-                                    <div class="p-1.5 rounded-md bg-primary/10 text-primary">
-                                        <x-lucide-package class="h-4 w-4" />
+                                
+                                {{-- Loading State / Skeleton --}}
+                                <div wire:loading wire:target="productSearch" class="w-full">
+                                    <div class="flex flex-col items-center justify-center py-12 px-4 gap-4">
+                                        <div class="relative">
+                                            <div class="h-12 w-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin"></div>
+                                            <div class="absolute inset-0 flex items-center justify-center">
+                                                <x-lucide-search class="h-5 w-5 text-primary animate-pulse" />
+                                            </div>
+                                        </div>
+                                        <div class="space-y-1.5 text-center">
+                                            <span class="text-sm font-black text-foreground uppercase tracking-widest block">Mencari Produk...</span>
+                                            <p class="text-[10px] text-muted-foreground italic">Menghubungkan ke database</p>
+                                        </div>
+                                        
+                                        {{-- Mini Skeleton --}}
+                                        <div class="w-full max-w-[250px] space-y-2 mt-2">
+                                            <div class="h-8 w-full bg-muted/50 rounded-lg animate-pulse"></div>
+                                            <div class="h-8 w-full bg-muted/30 rounded-lg animate-pulse"></div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div class="font-bold">{{ $p->nama }}</div>
-                                        <div class="text-[10px] text-muted-foreground uppercase">{{ $p->kode_produk }} • Base: {{ $p->base_unit }}</div>
+                                </div>
+
+                                <div wire:loading.remove wire:target="productSearch">
+                                    @forelse($searchProducts as $p)
+                                    <button
+                                        type="button"
+                                        wire:click="selectProduct({{ $p->id }})"
+                                        @click="searchOpen = false"
+                                        class="flex w-full items-center gap-3 px-3 py-2 text-sm hover:bg-muted transition-colors text-left">
+                                        <div class="p-1.5 rounded-md bg-primary/10 text-primary">
+                                            <x-lucide-package class="h-4 w-4" />
+                                        </div>
+                                        <div>
+                                            <div class="font-bold">{{ $p->nama }}</div>
+                                            <div class="text-[10px] text-muted-foreground uppercase">{{ $p->kode_produk }} • Base: {{ $p->base_unit }}</div>
+                                        </div>
+                                    </button>
+                                    @empty
+                                    <div class="px-3 py-4 text-center text-xs text-muted-foreground flex flex-col gap-2">
+                                        <div class="p-2 rounded-full bg-muted/50 w-fit mx-auto mb-1">
+                                            <x-lucide-search-x class="h-5 w-5 text-muted-foreground/30" />
+                                        </div>
+                                        <span class="font-bold">Wah, produk tidak ditemukan</span>
+                                        <p class="text-[10px] text-muted-foreground max-w-[180px] mx-auto">Cek kembali kata kunci atau barcode Anda.</p>
+                                        <button 
+                                            type="button"
+                                            wire:click="openQuickProductModal"
+                                            class="mx-auto mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all font-bold shadow-lg shadow-primary/20">
+                                            <x-lucide-plus class="h-3.5 w-3.5" />
+                                            Tambah Master Baru
+                                        </button>
                                     </div>
-                                </button>
-                                @empty
-                                <div class="px-3 py-4 text-center text-xs text-muted-foreground">Produk tidak ditemukan</div>
-                                @endforelse
+                                    @endforelse
+                                    <div class="border-t border-border mt-1 pt-1 bg-muted/20">
+                                        <button 
+                                            type="button"
+                                            wire:click="openQuickProductModal"
+                                            class="flex w-full items-center gap-2 px-3 py-2 text-[10px] font-bold text-primary hover:bg-muted transition-colors uppercase tracking-tight">
+                                            <x-lucide-plus-circle class="h-3.5 w-3.5" />
+                                            Produk baru? Daftarkan di Master
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         @error('selectedProduct') <span class="text-xs text-destructive font-medium">{{ $message }}</span> @enderror
@@ -674,6 +723,127 @@
                     <button @click="show = false" class="flex-1 px-4 py-2.5 rounded-xl border border-border font-semibold hover:bg-muted transition-all">Batal</button>
                     <button wire:click="delete" class="flex-1 px-4 py-2.5 rounded-xl bg-destructive text-destructive-foreground font-semibold hover:bg-destructive/90 transition-all">Ya, Hapus</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal Tambah Produk Master (Quick Create) --}}
+    <div
+        x-data="{ show: @entangle('showQuickProductModal') }"
+        x-show="show"
+        class="fixed inset-0 z-[150] overflow-y-auto"
+        style="display: none;"
+        @keydown.escape.window="show = false">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div x-show="show" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity" @click="show = false"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            <div x-show="show" x-transition.scale.95 class="relative inline-block align-bottom bg-card w-full max-w-2xl rounded-2xl shadow-2xl border border-border text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle z-[151]">
+                <div class="flex items-center justify-between p-6 border-b border-border bg-muted/10">
+                    <div>
+                        <h3 class="text-xl font-bold text-foreground">Tambah Produk Master Baru</h3>
+                        <p class="text-sm text-muted-foreground mt-1">Buat master produk dengan cepat untuk batch ini</p>
+                    </div>
+                    <button @click="show = false" class="p-2 hover:bg-muted rounded-full transition-colors group">
+                        <x-lucide-x class="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
+                    </button>
+                </div>
+
+                <form wire:submit.prevent="storeQuickProduct" class="p-6 space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="text-sm font-semibold text-foreground">Nama Produk <span class="text-destructive">*</span></label>
+                            <input type="text" wire:model="quick_nama" placeholder="Masukkan nama produk" class="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
+                            @error('quick_nama') <span class="text-xs text-destructive font-medium">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-foreground">Kategori Produk <span class="text-destructive">*</span></label>
+                            <select wire:model="quick_selectedCategory" class="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
+                                <option value="">-- Pilih Kategori --</option>
+                                @foreach($categories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('quick_selectedCategory') <span class="text-xs text-destructive font-medium">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-foreground">Kode Barcode <span class="text-destructive">*</span></label>
+                            <div class="relative group">
+                                <input type="text" wire:model="quick_kode_produk" placeholder="Scan barcode..." class="flex h-10 w-full rounded-lg border-2 border-primary/20 bg-background/50 pl-3 pr-10 py-2 text-sm font-mono ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 transition-all cursor-pointer hover:border-primary/40">
+                                <button type="button" wire:click="generateQuickBarcode" class="absolute inset-y-0 right-0 p-2 text-primary hover:text-primary/70 transition-colors">
+                                    <x-lucide-wand-sparkles class="h-5 w-5" />
+                                </button>
+                            </div>
+                            @error('quick_kode_produk') <span class="text-xs text-destructive font-medium">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-foreground">Satuan (Base Unit) <span class="text-destructive">*</span></label>
+                            <input type="text" wire:model="quick_base_unit" placeholder="Cth: Pcs, Box, Pack" class="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
+                            @error('quick_base_unit') <span class="text-xs text-destructive font-medium">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="col-span-full p-4 rounded-xl border border-dashed border-primary/30 bg-primary/5">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="p-1.5 rounded-lg bg-primary/10 text-primary">
+                                        <x-lucide-layers class="h-4 w-4" />
+                                    </div>
+                                    <h4 class="text-sm font-bold text-foreground">Satuan Multi (Opsional)</h4>
+                                </div>
+                                <button type="button" wire:click="addQuickUnit" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm">
+                                    <x-lucide-plus class="h-3.5 w-3.5" />
+                                    Tambah Unit
+                                </button>
+                            </div>
+                            @if(count($quick_units) > 0)
+                            <div class="space-y-3">
+                                @foreach($quick_units as $index => $unit)
+                                <div class="grid grid-cols-12 gap-3 items-end">
+                                    <div class="col-span-6 space-y-1.5">
+                                        <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Label Satuan</label>
+                                        <input type="text" wire:model="quick_units.{{ $index }}.label" placeholder="Cth: Box, Pack" class="flex h-9 w-full rounded-lg border border-input bg-background/50 px-3 py-1 text-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/30">
+                                    </div>
+                                    <div class="col-span-4 space-y-1.5">
+                                        <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Pengali (Isi)</label>
+                                        <input type="number" wire:model="quick_units.{{ $index }}.multiplier" class="flex h-9 w-full rounded-lg border border-input bg-background/50 px-3 py-1 text-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/30">
+                                    </div>
+                                    <div class="col-span-2 pb-0.5">
+                                        <button type="button" wire:click="removeQuickUnit({{ $index }})" class="h-9 w-full flex items-center justify-center rounded-lg text-destructive hover:bg-destructive/10 transition-colors">
+                                            <x-lucide-trash-2 class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4 border-t border-border pt-6">
+                        <div class="space-y-1.5">
+                            <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Harga Beli (Rp)</span>
+                            <input type="number" wire:model.live.debounce.250ms="quick_harga_beli" class="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
+                        </div>
+                        <div class="space-y-1.5">
+                            <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Margin (Rp)</span>
+                            <input type="number" wire:model.live.debounce.250ms="quick_margin" class="flex h-10 w-full rounded-lg border-2 border-green-500/30 bg-green-500/5 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/30 transition-all font-semibold text-green-600">
+                        </div>
+                        <div class="space-y-1.5">
+                            <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Harga Jual (Rp)</span>
+                            <input type="number" wire:model.live.debounce.250ms="quick_harga_jual" class="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm font-bold text-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3 pt-4 border-t border-border">
+                        <button type="button" @click="show = false" class="px-4 py-2 text-sm font-semibold rounded-lg text-muted-foreground hover:bg-muted transition-all">Batal</button>
+                        <button type="submit" class="px-6 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all flex items-center gap-2">
+                            <x-lucide-save class="h-4 w-4" />
+                            Simpan Produk & Gunakan
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

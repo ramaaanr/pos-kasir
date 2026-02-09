@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Debt;
 use App\Services\DebtPaymentService;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Exception;
 
 #[Layout('components.layouts.kasir', ['title' => 'Pembayaran Hutang'])]
@@ -14,7 +15,10 @@ class DebtPage extends Component
 {
     // Search & Selection State
     public $searchCustomer = '';
+    
+    #[Url(as: 'customer_id')]
     public $selectedCustomerId = null;
+    
     public $activeDebts = [];
 
     // Payment Modal State
@@ -34,6 +38,13 @@ class DebtPage extends Component
     public $showErrorModal = false;
     public $errorMessage = '';
     public $successData = [];
+
+    public function mount()
+    {
+        if ($this->selectedCustomerId) {
+            $this->loadActiveDebts();
+        }
+    }
 
     public function selectCustomer($customerId)
     {

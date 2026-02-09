@@ -691,7 +691,7 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <button
-                        @click="window.print()"
+                        wire:click="reprintLastInvoice"
                         class="flex items-center justify-center gap-2 py-5 rounded-2xl border-2 border-primary text-primary font-black text-lg hover:bg-primary/5 transition-all">
                         <x-lucide-printer class="h-6 w-6" />
                         Cetak Struk
@@ -745,19 +745,18 @@
     </div>
 
     <!-- 9. PRINT INVOICE TEMPLATE (Hidden from UI) -->
-    <div id="invoice-print" class="hidden print:block p-4 font-mono text-[12px] leading-tight w-[80mm]">
+    <div id="invoice-print" class="hidden print:block p-4 px-12 font-mono text-[18px] leading-tight w-[80mm]">
         <div class="text-center mb-4">
-            <h2 class="text-lg font-bold uppercase">Nama Toko Anda</h2>
-            <p>Jl. Contoh Alamat No. 123</p>
-            <p>Telp: 0812-3456-7890</p>
+            <h2 class="text-lg font-bold uppercase">UD.SEPAN</h2>
+            <p class="uppercase text-[14px]">JL. ANTANG JUNGAN KECAMATAN RUNGAN HULU KABUPATEN GUNUNG MAS</p>
             <div class="border-b border-dashed border-black my-2"></div>
             <p class="font-bold">INVOICE</p>
         </div>
 
-        <div class="space-y-1 mb-4 text-[10px]">
+        <div class="space-y-1 mb-4 text-[14px]">
             <div class="flex justify-between">
                 <span>No :</span>
-                <span>{{ $successInvoice }}</span>
+                <span class="text-[18px]">{{ $successInvoice }}</span>
             </div>
             <div class="flex justify-between">
                 <span>Tgl:</span>
@@ -779,8 +778,8 @@
             @foreach($successItems as $item)
             @if(is_array($item))
             <div>
-                <div class="font-bold text-[11px]">{{ $item['nama'] ?? '' }}</div>
-                <div class="flex justify-between text-[10px]">
+                <div class="font-bold text-[16px]">{{ $item['nama'] ?? '' }}</div>
+                <div class="flex justify-between text-[14px]">
                     <span>{{ number_format($item['qty'] ?? 0, 0) }} {{ $item['unit'] ?? '' }} x {{ number_format($item['harga'] ?? 0, 0, ',', '.') }}</span>
                     <span>{{ number_format($item['subtotal'] ?? 0, 0, ',', '.') }}</span>
                 </div>
@@ -791,7 +790,7 @@
 
         <div class="border-b border-dashed border-black mb-2"></div>
 
-        <div class="space-y-1 text-[11px]">
+        <div class="space-y-1 text-[16px]">
             <div class="flex justify-between font-black">
                 <span>TOTAL</span>
                 <span>Rp {{ number_format($successTotal, 0, ',', '.') }}</span>
@@ -824,7 +823,7 @@
 
         <div class="border-b border-dashed border-black my-4"></div>
 
-        <div class="text-center italic text-[10px]">
+        <div class="text-center italic text-[14px]">
             <p>Terima Kasih</p>
             <p>Sudah Berbelanja!</p>
         </div>

@@ -28,6 +28,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('')
             ->login(\App\Filament\Auth\CustomLogin::class)
             ->homeUrl('/dashboard')
+            ->favicon(asset('favicon.ico'))
             ->colors([
                 'primary' => '#315efb',
             ])

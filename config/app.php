@@ -105,6 +105,8 @@ return [
         ),
     ],
 
+    'printer_name' => env('PRINTER_NAME', 'POS-58'),
+
     /*
     |--------------------------------------------------------------------------
     | Maintenance Mode Driver

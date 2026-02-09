@@ -342,7 +342,7 @@ class PosPage extends Component
         $this->successCashChange = (int) $this->cashChange;
         $this->successDate = now()->format('d-m-Y H:i');
 
-        // Snapshot items for printing
+        // Snapshot items for printing (backup for view)
         $this->successItems = $this->currentSale->items->map(function ($item) {
             return [
                 'nama' => $item->product->nama,
@@ -353,12 +353,35 @@ class PosPage extends Component
             ];
         })->toArray();
         
+        // Auto Print ESC/POS
+        try {
+            app(\App\Services\PrinterService::class)->printInvoice($this->currentSale);
+            $this->dispatch('notify', message: 'Struk berhasil dicetak.', type: 'success');
+        } catch (\Exception $e) {
+            $printerUrl = config('app.printer_url');
+            $this->dispatch('notify', message: "Gagal mencetak struk ke '$printerUrl': " . $e->getMessage(), type: 'warning');
+        }
+
         $this->currentSale = null;
         $this->partialDebtAmount = 0;
         $this->cashReceived = 0;
         $this->cashChange = 0;
         $this->showCheckoutModal = false;
         $this->showSuccessModal = true;
+    }
+
+    public function reprintLastInvoice()
+    {
+        try {
+            $lastSale = Sale::where('invoice_number', $this->successInvoice)->first();
+            if ($lastSale) {
+                app(\App\Services\PrinterService::class)->printInvoice($lastSale);
+                $this->dispatch('notify', message: 'Struk dicetak ulang.', type: 'success');
+            }
+        } catch (\Exception $e) {
+            $printerUrl = config('app.printer_url');
+            $this->dispatch('notify', message: "Gagal mencetak ulang ke '$printerUrl': " . $e->getMessage(), type: 'error');
+        }
     }
 
     public function resetPos()

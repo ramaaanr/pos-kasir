@@ -11,8 +11,8 @@
 
         <div class="w-full max-w-md glass animate-fade-in relative z-10 rounded-3xl shadow-2xl p-6 md:px-8 md:pt-8 md:pb-6 border-white/50">
             <div class="text-center mb-6">
-                <div class="mx-auto w-16 h-16 rounded-3xl flex items-center justify-center shadow-xl mb-4">
-                    <x-lucide-store class="w-8 h-8 text-primary" />
+                <div class="mx-auto w-16 h-16 rounded-3xl flex items-center justify-center shadow-xl mb-4 overflow-hidden">
+                    <img src="{{ asset('icon-app.png') }}" alt="POS App Icon" class="w-full h-full object-cover">
                 </div>
                 <div>
                     <h2 class="text-2xl font-bold tracking-tight text-[#1a1c21]">

@@ -197,6 +197,9 @@ class SaleService
                 $qtyNeeded -= $deduct;
             }
 
+            // Update last_sold_at for the product
+            $item->product->update(['last_sold_at' => now()]);
+
             // Note: We NO LONGER delete the item or split it into multiple SaleItems.
             // One SaleItem = One Row on Invoice.
         }

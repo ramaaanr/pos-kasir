@@ -19,8 +19,17 @@ Route::middleware(['auth'])->group(function () {
     // Dashboard - accessible by all authenticated users (renders role-specific view)
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
-    // Admin-only routes
+    // Admin & Owner shared routes
     Route::middleware(['role:admin,owner'])->group(function () {
+        Route::get('/laporan', App\Livewire\Admin\ReportPage::class)->name('admin.reports.index');
+        Route::get('/sales', App\Livewire\Admin\SalesPage::class)->name('admin.sales.index');
+        Route::get('/sales/{invoice}', App\Livewire\Admin\SalesPage::class)->name('admin.sales.detail');
+        Route::get('/debts', App\Livewire\Admin\AdminDebtList::class)->name('admin.debts.index');
+        Route::get('/manajemen-user', App\Livewire\Admin\UserManagement::class)->name('admin.users.index');
+    });
+
+    // Admin-only routes (Owner excluded)
+    Route::middleware(['role:admin'])->group(function () {
         Route::get('/product-categories', [ProductCategoryController::class, 'index'])->name('product-categories.index');
         Route::get('/products', [ProductController::class, 'index'])->name('products.index');
         Route::get('/products/{id}/barcode', [ProductController::class, 'printBarcode'])->name('products.barcode');

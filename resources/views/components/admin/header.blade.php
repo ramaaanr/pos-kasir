@@ -27,25 +27,47 @@
 
             {{-- Center: Navigation Menu --}}
             <nav class="hidden md:flex items-center gap-1">
-                <a href="{{ route('products.index') }}" 
-                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('products.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
-                    <x-lucide-package class="w-4 h-4 inline-block mr-1" />
-                    Produk
+                @if(auth()->user()->hasRole('admin'))
+                    <a href="{{ route('products.index') }}" 
+                       class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('products.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                        <x-lucide-package class="w-4 h-4 inline-block mr-1" />
+                        Produk
+                    </a>
+                    <a href="{{ route('product-categories.index') }}" 
+                       class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('product-categories.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                        <x-lucide-layout-grid class="w-4 h-4 inline-block mr-1" />
+                        Kategori
+                    </a>
+                    <a href="{{ route('stok-masuk.index') }}" 
+                       class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('stok-masuk.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                        <x-lucide-truck class="w-4 h-4 inline-block mr-1" />
+                        Stok Masuk
+                    </a>
+                    <a href="{{ route('admin.stock-adjustments.index') }}" 
+                       class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.stock-adjustments.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                        <x-lucide-clipboard-edit class="w-4 h-4 inline-block mr-1" />
+                        Stock Adjustment
+                    </a>
+                @endif
+
+                @if(auth()->user()->hasRole('owner'))
+                    <a href="{{ route('admin.users.index') }}" 
+                       class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.users.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                        <x-lucide-users class="w-4 h-4 inline-block mr-1" />
+                        Manajemen User
+                    </a>
+                @endif
+
+                <a href="{{ route('admin.reports.index') }}" 
+                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.reports.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                    <x-lucide-bar-chart-3 class="w-4 h-4 inline-block mr-1" />
+                    Laporan
                 </a>
-                <a href="{{ route('product-categories.index') }}" 
-                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('product-categories.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
-                    <x-lucide-layout-grid class="w-4 h-4 inline-block mr-1" />
-                    Kategori
-                </a>
-                <a href="{{ route('stok-masuk.index') }}" 
-                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('stok-masuk.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
-                    <x-lucide-truck class="w-4 h-4 inline-block mr-1" />
-                    Stok Masuk
-                </a>
-                <a href="{{ route('admin.stock-adjustments.index') }}" 
-                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.stock-adjustments.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
-                    <x-lucide-clipboard-edit class="w-4 h-4 inline-block mr-1" />
-                    Stock Adjustment
+
+                <a href="{{ route('admin.sales.index') }}" 
+                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.sales.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                    <x-lucide-receipt class="w-4 h-4 inline-block mr-1" />
+                    Data Penjualan
                 </a>
             </nav>
 

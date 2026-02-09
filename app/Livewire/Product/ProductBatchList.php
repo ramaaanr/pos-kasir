@@ -4,6 +4,8 @@ namespace App\Livewire\Product;
 
 use App\Models\Product;
 use App\Models\ProductBatch;
+use App\Models\ProductCategory;
+use App\Services\ProductService;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -45,6 +47,18 @@ class ProductBatchList extends Component
     public $batchDetail = null; // Used for Detail Modal
     public $availableUnits = [];
     public $isCalculating = false;
+    public $pendingEnter = false;
+
+    // Quick Product Modal State
+    public $showQuickProductModal = false;
+    public $quick_nama = '';
+    public $quick_selectedCategory = '';
+    public $quick_kode_produk = '';
+    public $quick_harga_beli = 0;
+    public $quick_margin = 0;
+    public $quick_harga_jual = 0;
+    public $quick_base_unit = 'Pcs';
+    public $quick_units = []; // Array of ['label' => '', 'multiplier' => '']
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -179,6 +193,29 @@ class ProductBatchList extends Component
         }
     }
 
+    public function selectFirstResult()
+    {
+        $results = $this->filteredProducts;
+        if (count($results) > 0) {
+            $this->selectProduct($results[0]->id);
+            $this->pendingEnter = false;
+        } else {
+            $this->pendingEnter = true;
+        }
+    }
+
+    public function updatedProductSearch()
+    {
+        if ($this->pendingEnter) {
+            $results = $this->filteredProducts;
+            if (count($results) >= 1) {
+                // If we have results and were waiting for them, pick the first one
+                $this->selectProduct($results[0]->id);
+                $this->pendingEnter = false;
+            }
+        }
+    }
+
     public function updatedHargaBeli()
     {
         $this->calculateHargaJual();
@@ -206,6 +243,88 @@ class ProductBatchList extends Component
     {
         // Cast to float to prevent TypeError: string - float
         $this->margin = (int)((float)$this->harga_jual - (float)$this->harga_beli);
+    }
+
+    // --- Quick Product Methods ---
+    public function openQuickProductModal()
+    {
+        $this->reset(['quick_nama', 'quick_selectedCategory', 'quick_kode_produk', 'quick_harga_beli', 'quick_margin', 'quick_harga_jual', 'quick_base_unit', 'quick_units']);
+        $this->quick_base_unit = 'Pcs';
+        // Auto-fill barcode if something was searched
+        if ($this->productSearch && strlen($this->productSearch) > 3 && !is_numeric($this->productSearch) === false) {
+             $this->quick_kode_produk = $this->productSearch;
+        }
+        $this->showQuickProductModal = true;
+    }
+
+    public function updatedQuickHargaBeli() { $this->calculateQuickHargaJual(); }
+    public function updatedQuickMargin() { $this->calculateQuickHargaJual(); }
+    public function updatedQuickHargaJual() { $this->calculateQuickMargin(); }
+
+    private function calculateQuickHargaJual()
+    {
+        $this->quick_harga_jual = (float)$this->quick_harga_beli + (float)$this->quick_margin;
+    }
+
+    private function calculateQuickMargin()
+    {
+        $this->quick_margin = (float)$this->quick_harga_jual - (float)$this->quick_harga_beli;
+    }
+
+    public function generateQuickBarcode(ProductService $service)
+    {
+        $prefix = 'PRD-';
+        $random = str_pad(rand(1, 999999), 6, '0', STR_PAD_LEFT);
+        $barcode = $prefix . $random;
+        if (!$service->isBarcodeUnique($barcode)) {
+            $random = str_pad(rand(1, 999999), 6, '0', STR_PAD_LEFT);
+            $barcode = $prefix . $random;
+        }
+        $this->quick_kode_produk = $barcode;
+    }
+
+    public function addQuickUnit()
+    {
+        $this->quick_units[] = ['label' => '', 'multiplier' => 1];
+    }
+
+    public function removeQuickUnit($index)
+    {
+        unset($this->quick_units[$index]);
+        $this->quick_units = array_values($this->quick_units);
+    }
+
+    public function storeQuickProduct(ProductService $service)
+    {
+        $this->validate([
+            'quick_nama' => 'required|min:3',
+            'quick_selectedCategory' => 'required',
+            'quick_kode_produk' => 'required',
+            'quick_harga_beli' => 'required|numeric|min:0',
+            'quick_harga_jual' => 'required|numeric|min:0',
+            'quick_base_unit' => 'required',
+        ]);
+
+        try {
+            $data = [
+                'nama' => $this->quick_nama,
+                'category_id' => $this->quick_selectedCategory,
+                'kode_produk' => $this->quick_kode_produk,
+                'harga_beli_default' => $this->quick_harga_beli,
+                'harga_jual_default' => $this->quick_harga_jual,
+                'base_unit' => $this->quick_base_unit,
+                'is_active' => true,
+                'units' => $this->quick_units
+            ];
+
+            $product = $service->createProduct($data);
+            
+            $this->showQuickProductModal = false;
+            $this->selectProduct($product->id);
+            $this->dispatch('toast', ['type' => 'success', 'message' => 'Produk Master baru berhasil dibuat']);
+        } catch (\Exception $e) {
+            $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
+        }
     }
 
     public function closeModal()
@@ -315,7 +434,7 @@ class ProductBatchList extends Component
     public function getFilteredProductsProperty()
     {
         $search = trim($this->productSearch);
-        if (strlen($search) < 2) {
+        if (strlen($search) < 3) {
             return [];
         }
 
@@ -347,6 +466,7 @@ class ProductBatchList extends Component
             'batches' => $query->paginate($this->perPage),
             'products' => Product::where('is_active', true)->orderBy('nama')->get(),
             'searchProducts' => $this->filteredProducts,
+            'categories' => ProductCategory::where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 }
