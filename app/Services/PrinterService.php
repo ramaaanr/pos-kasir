@@ -8,10 +8,11 @@ use Illuminate\Support\Facades\Log;
 
 class PrinterService
 {
-    protected $printerName = 'POS-58';
-    protected $paperWidth = 32;
+   protected $printerName = 'POS-58';
+    protected $paperWidth = 28; // Tetap 28 agar ada sisa ruang di kanan
+    protected $leftMargin = "  "; // Tambahkan 2 spasi sebagai margin kiri (~2mm)
 
-    public function printInvoice(Sale $sale)
+    public function printInvoice($sale)
     {
         try {
             $content = $this->buildInvoiceContent($sale);
@@ -25,22 +26,23 @@ class PrinterService
     protected function buildInvoiceContent(Sale $sale)
     {
         $content = "";
+        $m = $this->leftMargin; // Shortcut
 
         // Header (Center)
-        $content .= $this->centerText("UD.SEPAN");
-        $content .= $this->centerText("JL. ANTANG JUNGAN");
-        $content .= $this->centerText("KECAMATAN RUNGAN HULU");
-        $content .= $this->centerText("KABUPATEN GUNUNG MAS");
-        $content .= str_repeat('-', $this->paperWidth) . "\n";
-        $content .= $this->centerText("INVOICE");
+        $content .= $m . $this->centerText("UD.SEPAN");
+        $content .= $m . $this->centerText("JL. ANTANG JUNGAN");
+        $content .= $m . $this->centerText("KECAMATAN RUNGAN HULU");
+        $content .= $m . $this->centerText("KABUPATEN GUNUNG MAS");
+        $content .= $m . str_repeat('-', $this->paperWidth) . "\n";
+        $content .= $m . $this->centerText("INVOICE");
         $content .= "\n";
 
         // Info
-        $content .= "No : " . ($sale->invoice_number ?? '-') . "\n";
-        $content .= "Tgl: " . $sale->created_at->format('d/m/Y H:i') . "\n";
-        $content .= "Ksr: " . ($sale->user->name ?? 'System') . "\n";
-        $content .= "Byr: " . strtoupper($sale->payment_method ?? 'CASH') . "\n";
-        $content .= str_repeat('-', $this->paperWidth) . "\n";
+        $content .= $m . "No : " . ($sale->invoice_number ?? '-') . "\n";
+        $content .= $m . "Tgl: " . $sale->created_at->format('d/m/Y H:i') . "\n";
+        $content .= $m . "Ksr: " . ($sale->user->name ?? 'System') . "\n";
+        $content .= $m . "Byr: " . strtoupper($sale->payment_method ?? 'CASH') . "\n";
+        $content .= $m . str_repeat('-', $this->paperWidth) . "\n";
 
         // Items
         if ($sale->items && $sale->items->count() > 0) {
@@ -51,86 +53,83 @@ class PrinterService
                 $price = ($item->harga_jual_per_unit ?? 0) * ($item->unit_multiplier ?? 1);
                 $subtotal = $item->subtotal ?? 0;
 
-                // Potong nama jika terlalu panjang
                 if (mb_strlen($name) > $this->paperWidth) {
                     $name = mb_substr($name, 0, $this->paperWidth - 3) . "...";
                 }
 
-                $content .= $name . "\n";
+                $content .= $m . $name . "\n";
 
                 $qtyStr = number_format((float)$qty, 0, ',', '.');
                 $priceStr = number_format((float)$price, 0, ',', '.');
                 $subtotalStr = number_format((float)$subtotal, 0, ',', '.');
 
                 $leftPart = "$qtyStr $unit x $priceStr";
-                $content .= $this->textToRight($leftPart, $subtotalStr);
+                $content .= $m . $this->textToRight($leftPart, $subtotalStr);
             }
         } else {
-            $content .= "(Tidak ada item)\n";
+            $content .= $m . "(Tidak ada item)\n";
         }
 
-        $content .= str_repeat('-', $this->paperWidth) . "\n";
+        $content .= $m . str_repeat('-', $this->paperWidth) . "\n";
 
         // Totals
         $total = number_format((float)($sale->total ?? 0), 0, ',', '.');
-        $content .= $this->textToRight("TOTAL", "Rp $total");
+        $content .= $m . $this->textToRight("TOTAL", "Rp $total");
 
         if ($sale->payment_method === 'cash') {
             $paid = number_format((float)($sale->cash_received ?? 0), 0, ',', '.');
             $change = number_format((float)($sale->cash_change ?? 0), 0, ',', '.');
 
-            $content .= $this->textToRight("BAYAR", "Rp $paid");
-            $content .= $this->textToRight("KEMBALI", "Rp $change");
+            $content .= $m . $this->textToRight("BAYAR", "Rp $paid");
+            $content .= $m . $this->textToRight("KEMBALI", "Rp $change");
         } else {
             $customer = $sale->customer->nama ?? '-';
             $paid = number_format((float)($sale->total_paid ?? 0), 0, ',', '.');
             $debt = number_format((float)(($sale->total ?? 0) - ($sale->total_paid ?? 0)), 0, ',', '.');
 
-            $content .= "Pelanggan: $customer\n";
-            $content .= $this->textToRight("BAYAR (DP)", "Rp $paid");
-            $content .= $this->textToRight("SISA HUTANG", "Rp $debt");
+            $content .= $m . "Pelanggan: $customer\n";
+            $content .= $m . $this->textToRight("BAYAR (DP)", "Rp $paid");
+            $content .= $m . $this->textToRight("SISA HUTANG", "Rp $debt");
         }
 
         // Footer
         $content .= "\n";
-        $content .= $this->centerText("Terima Kasih");
-        $content .= $this->centerText("Barang yang sudah dibeli");
-        $content .= $this->centerText("tidak dapat ditukar/dikembalikan");
+        $content .= $m . $this->centerText("Terima Kasih");
+        $content .= $m . $this->centerText("Barang yang sudah dibeli");
+        $content .= $m . $this->centerText("tidak dapat ditukar/dikembalikan");
         $content .= "\n\n\n";
 
         return $content;
     }
 
-    protected function printViaPowerShell($content)
-    {
-        try {
-            $tempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'invoice_' . uniqid() . '.txt';
+   protected function printViaPowerShell($content)
+{
+    try {
+        $tempFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'invoice.txt';
+        
+        // Gunakan encoding CP437 agar karakter garis (-) dan spasi dibaca tepat oleh printer thermal
+        $encodedContent = iconv("UTF-8", "CP437//IGNORE", $content);
+        file_put_contents($tempFile, $encodedContent . "\n\n\n\n");
 
-            // Tulis content ke file
-            file_put_contents($tempFile, $content);
+        $printerPath = "\\\\127.0.0.1\\{$this->printerName}";
+        
+        // Jalankan COPY /B (Ini bypass margin Windows sepenuhnya)
+        $command = "cmd /c copy /b \"$tempFile\" \"$printerPath\"";
+        exec($command, $output, $return);
 
-            // Print menggunakan PowerShell Out-Printer
-            $command = 'powershell -Command "Get-Content \"' . $tempFile . '\" -Raw | Out-Printer -Name \"' . $this->printerName . '\""';
-
+        // JIKA COPY /B gagal (Access Denied), gunakan cara ini sebagai cadangan:
+        if ($return !== 0) {
+            // Kita gunakan [System.IO.File]::WriteAllText untuk mengirim RAW data
+            $command = "powershell -Command \"get-content '$tempFile' | Out-Printer -Name '{$this->printerName}'\"";
             exec($command, $output, $return);
-
-            // Tunggu sebentar sebelum hapus file
-            sleep(1);
-
-            // Hapus temporary file
-            if (file_exists($tempFile)) {
-                unlink($tempFile);
-            }
-
-            if ($return !== 0) {
-                throw new Exception("Print command failed with return code: $return");
-            }
-
-            return true;
-        } catch (Exception $e) {
-            throw new Exception("PowerShell print error: " . $e->getMessage());
         }
+
+        if (file_exists($tempFile)) { unlink($tempFile); }
+        return true;
+    } catch (Exception $e) {
+        throw new Exception("Print error: " . $e->getMessage());
     }
+}
 
     protected function centerText($text)
     {
