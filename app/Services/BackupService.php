@@ -32,31 +32,27 @@ class BackupService
             $mysqldump = '"' . $mysqldumpPath . '"';
 
             // --- 2. VALIDASI & PEMBUATAN FOLDER ---
-foreach ($destinations as $label => $folder) {
-    try {
-        if (!file_exists($folder)) {
-            // Gunakan @ untuk meredam warning bawaan agar bisa kita handle manual
-            if (!@mkdir($folder, 0755, true)) {
-                $error = error_get_last();
-                $sysMsg = $error['message'] ?? 'Tidak ada pesan sistem';
-                
-                // Log detail ke laravel.log
-                Log::error("Gagal mkdir di {$label}. Path: {$folder}. Error: {$sysMsg}");
-                
-                // Lempar exception agar muncul di UI/Console
-                throw new Exception("Izin Ditolak saat membuat folder [{$label}]. Lokasi: {$folder}. Pesan OS: {$sysMsg}");
-            }
-            $logs[] = "Folder {$label} berhasil dibuat.";
-        }
+            foreach ($destinations as $label => $folder) {
+                // 1. Pastikan Path menggunakan forward slash agar Nginx/Windows tidak bingung
+                $folder = str_replace('\\', '/', $folder);
 
-        if (!is_writable($folder)) {
-            throw new Exception("Folder [{$label}] ada tapi TIDAK BISA DITULIS: {$folder}");
-        }
-    } catch (Exception $e) {
-        // Langsung lempar ke catch utama agar tercatat di tabel BackupHistory
-        throw $e;
-    }
-}
+                if (!file_exists($folder)) {
+                    if (!@mkdir($folder, 0755, true)) {
+                        $error = error_get_last();
+                        Log::error("Gagal mkdir di {$label}. Path: {$folder}. Error: " . ($error['message'] ?? 'None'));
+                        throw new Exception("Izin Ditolak membuat folder [{$label}].");
+                    }
+                }
+
+                // 2. JANGAN pakai is_writable bawaan PHP di Windows. 
+                // Kita tes langsung dengan menulis file kecil.
+                $testFile = $folder . '/.write_test';
+                if (@file_put_contents($testFile, '1') === false) {
+                    throw new Exception("Windows melarang Nginx menulis ke [{$label}]: {$folder}. Cek izin folder!");
+                } else {
+                    @unlink($testFile); // Hapus file tes jika berhasil
+                }
+            }
 
             // --- 3. EKSEKUSI MYSQLDUMP ---
             $dbUser = env('DB_USERNAME', 'root');
@@ -64,6 +60,7 @@ foreach ($destinations as $label => $folder) {
             $dbHost = env('DB_HOST', '127.0.0.1');
             $dbPort = env('DB_PORT', '3307');
 
+            // Gunakan --result-file agar lebih stabil di Windows daripada operator >
             // Gunakan --result-file agar lebih stabil di Windows daripada operator >
             $command = "{$mysqldump} --host={$dbHost} --port={$dbPort} --user={$dbUser} --password=\"{$dbPass}\" {$dbName} --no-tablespaces --result-file=\"{$mainPath}\" 2>&1";
 
