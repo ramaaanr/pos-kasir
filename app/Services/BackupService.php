@@ -17,8 +17,8 @@ class BackupService
 
         $destinations = [
             'App Storage' => storage_path('app/backups'),
-            'Local Documents' => 'C:\Documents\TOKPOS\Backups',
-            'Google Drive' => 'H:\My Drive\TOKPOS' // Pastikan Drive H: sudah termount
+            'Local Documents' => config('custom_backup.destinations.local'),
+            'Google Drive' => config('custom_backup.destinations.drive') 
         ];
 
         $mainPath = $destinations['App Storage'] . DIRECTORY_SEPARATOR . $filename;
@@ -26,8 +26,7 @@ class BackupService
 
         try {
             // --- 1. VALIDASI FILE MYSQLDUMP ---
-            // $mysqldumpPath = 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe';
-            $mysqldumpPath = 'C:\xampp\mysql\bin\mysqldump.exe';
+            $mysqldumpPath = config('custom_backup.mysqldump_path');
             if (!file_exists($mysqldumpPath)) {
                 throw new Exception("Tool mysqldump tidak ditemukan di: {$mysqldumpPath}");
             }

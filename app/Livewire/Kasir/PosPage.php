@@ -353,7 +353,8 @@ class PosPage extends Component
             ];
         })->toArray();
         
-        // Auto Print ESC/POS
+        // Auto Print ESC/POS (DISABLED REQUESTED BY USER)
+        /*
         try {
             app(\App\Services\PrinterService::class)->printInvoice($this->currentSale);
             $this->dispatch('notify', message: 'Struk berhasil dicetak.', type: 'success');
@@ -361,6 +362,7 @@ class PosPage extends Component
             $printerUrl = config('app.printer_url');
             $this->dispatch('notify', message: "Gagal mencetak struk ke '$printerUrl': " . $e->getMessage(), type: 'warning');
         }
+        */
 
         $this->currentSale = null;
         $this->partialDebtAmount = 0;
