@@ -202,12 +202,12 @@ class ReportPage extends Component
         return Excel::download(new ReportExport($export['data']), $export['filename']);
     }
 
-    public function uploadToDrive()
+    public function backupToLocal()
     {
         try {
             $export = $this->prepareExportData();
             if (empty($export['data'])) {
-                $this->dispatch('upload-error', message: 'Tidak ada data untuk diupload.');
+                $this->dispatch('upload-error', message: 'Tidak ada data untuk dibackup.');
                 return;
             }
 
@@ -229,7 +229,7 @@ class ReportPage extends Component
                 throw new \Exception("Gagal membuat file temporary: $tempPath");
             }
 
-            // 2. Determine Local Drive Path
+            // 2. Determine Local Destination Path
             // Mapping Report Key to Folder Name
             $folderMap = [
                 'shift_harian' => 'Shift Harian Kasir',
@@ -247,15 +247,14 @@ class ReportPage extends Component
             ];
 
             $folderName = $folderMap[$this->selectedReport] ?? 'Lainnya';
-            $driveBasePath = config('custom_backup.destinations.drive') . DIRECTORY_SEPARATOR . 'reports';
-            $targetFolder = $driveBasePath . DIRECTORY_SEPARATOR . $folderName;
+            $localBasePath = config('custom_backup.destinations.local') . DIRECTORY_SEPARATOR . 'reports';
+            $targetFolder = $localBasePath . DIRECTORY_SEPARATOR . $folderName;
             
             // 3. Create Target Directory if not exists
             if (!file_exists($targetFolder)) {
-                // Suppress warning for mkdir if drive is disconnected/missing to handle it gracefully in catch
                 if (!@mkdir($targetFolder, 0777, true)) {
                     $error = error_get_last();
-                    throw new \Exception("Gagal membuat folder di Google Drive. Pastikan path drive terhubung: $driveBasePath. (" . ($error['message'] ?? '') . ")");
+                    throw new \Exception("Gagal membuat folder backup lokal. Path: $localBasePath. (" . ($error['message'] ?? '') . ")");
                 }
             }
 
@@ -265,13 +264,13 @@ class ReportPage extends Component
             if (copy($tempPath, $destination)) {
                 // Cleanup temp
                 @unlink($tempPath);
-                $this->dispatch('upload-success', message: "Berhasil upload ke: $folderName");
+                $this->dispatch('upload-success', message: "Berhasil backup ke: $targetFolder");
             } else {
-                throw new \Exception("Gagal menyalin file ke Google Drive.");
+                throw new \Exception("Gagal menyalin file ke folder backup.");
             }
 
         } catch (\Exception $e) {
-            $this->dispatch('upload-error', message: 'Upload Gagal: ' . $e->getMessage());
+            $this->dispatch('upload-error', message: 'Backup Gagal: ' . $e->getMessage());
         }
     }
 

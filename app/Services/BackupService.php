@@ -18,7 +18,6 @@ class BackupService
         $destinations = [
             'App Storage' => storage_path('app/backups'),
             'Local Documents' => config('custom_backup.destinations.local'),
-            'Google Drive' => config('custom_backup.destinations.drive') 
         ];
 
         $mainPath = $destinations['App Storage'] . DIRECTORY_SEPARATOR . $filename;

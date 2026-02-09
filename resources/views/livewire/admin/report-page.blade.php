@@ -15,18 +15,18 @@
         </div>
     </div>
 
-    {{-- Global Upload Drive Loading Overlay --}}
-    <div wire:loading.flex wire:target="uploadToDrive" class="fixed inset-0 z-[9999] items-center justify-center bg-background/80 backdrop-blur-md">
+    {{-- Global Backup Local Loading Overlay --}}
+    <div wire:loading.flex wire:target="backupToLocal" class="fixed inset-0 z-[9999] items-center justify-center bg-background/80 backdrop-blur-md">
         <div class="bg-card p-8 rounded-3xl border border-border shadow-2xl flex flex-col items-center gap-4 max-w-xs w-full animate-in zoom-in duration-300">
             <div class="relative">
-                <div class="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                <div class="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
                 <div class="absolute inset-0 flex items-center justify-center">
-                    <x-lucide-hard-drive-upload class="w-6 h-6 text-blue-500 animate-pulse" />
+                    <x-lucide-hard-drive class="w-6 h-6 text-indigo-500 animate-pulse" />
                 </div>
             </div>
             <div class="text-center">
-                <h3 class="font-black text-foreground text-lg tracking-tight">Mengupload ke Drive</h3>
-                <p class="text-xs text-muted-foreground font-medium mt-1">Sedang menyimpan file ke Google Drive...</p>
+                <h3 class="font-black text-foreground text-lg tracking-tight">Menyimpan Backup</h3>
+                <p class="text-xs text-muted-foreground font-medium mt-1">Sedang menyimpan file ke folder Backup Lokal...</p>
             </div>
         </div>
     </div>
@@ -124,10 +124,10 @@
                         <x-lucide-file-spreadsheet class="w-3.5 h-3.5" />
                         <span>Excel</span>
                     </button>
-                    {{-- Upload to Drive Button --}}
-                    <button wire:click="uploadToDrive" wire:loading.attr="disabled" wire:target="uploadToDrive" class="ml-1 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600/10 text-blue-600 text-[10px] font-black rounded-lg hover:bg-blue-600 hover:text-white transition-all uppercase disabled:opacity-50">
-                        <x-lucide-hard-drive-upload class="w-3.5 h-3.5" />
-                        <span>Drive</span>
+                    {{-- Backup Local Button --}}
+                    <button wire:click="backupToLocal" wire:loading.attr="disabled" wire:target="backupToLocal" class="ml-1 inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600/10 text-indigo-600 text-[10px] font-black rounded-lg hover:bg-indigo-600 hover:text-white transition-all uppercase disabled:opacity-50">
+                        <x-lucide-hard-drive class="w-3.5 h-3.5" />
+                        <span>Backup Lokal</span>
                     </button>
                     @endif
                     <button @click="window.print()" class="ml-1 inline-flex items-center gap-1.5 px-4 py-2 text-muted-foreground hover:text-primary text-[10px] font-black rounded-lg transition-all uppercase">

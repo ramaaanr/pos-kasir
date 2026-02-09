@@ -22,6 +22,5 @@ return [
     */
     'destinations' => [
         'local' => env('BACKUP_LOCAL', 'C:\Documents\TOKPOS\Backups'),
-        'drive' => env('BACKUP_DRIVE', 'H:\My Drive\TOKPOS'),
     ],
 ];
