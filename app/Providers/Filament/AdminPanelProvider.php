@@ -10,7 +10,7 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\FontProviders\NullFontProvider;
+use Filament\FontProviders\LocalFontProvider;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -31,7 +31,7 @@ class AdminPanelProvider extends PanelProvider
             ->login(\App\Filament\Auth\CustomLogin::class)
             ->homeUrl('/dashboard')
             ->favicon(asset('favicon.ico'))
-            ->font('Inter', provider: NullFontProvider::class) // Nonaktifkan CDN bunny.net - font Inter sudah lokal via app.css
+            ->font('Inter', url: asset('css/fonts.css'), provider: LocalFontProvider::class) // Font lokal, tidak request ke bunny.net
             ->colors([
                 'primary' => '#315efb',
             ])

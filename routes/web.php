@@ -17,10 +17,10 @@ Route::get('/', function () {
     }
 
     if (Auth::check() && Auth::user()->hasRole('admin')) {
-        return redirect('/admin');
+        return redirect('/dashboard');
     }
 
-    return redirect()->route('kasir.pos');
+    return redirect()->route('kasir.dashboard');
 });
 
 Route::middleware(['auth'])->group(function () {

@@ -31,7 +31,7 @@ class CustomLogin extends Login
 
     public function getRedirectUrl(): string
     {
-        return route('dashboard');
+        return '/dashboard';
     }
 
     protected function throwFailureValidationException(): never
