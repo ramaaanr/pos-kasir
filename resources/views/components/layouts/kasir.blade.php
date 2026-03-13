@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,9 +8,12 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @vite(['resources/css/app.css'])
     <style>
-        .gradient-kasir { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .gradient-kasir {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
     </style>
 </head>
+
 <body class="bg-muted/10 font-sans antialiased min-h-screen flex flex-col">
     {{-- Sticky Header --}}
     <header class="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -26,13 +30,13 @@
 
             {{-- Center: Navigation Menu --}}
             <nav class="flex items-center gap-1">
-                <a href="{{ route('kasir.pos') }}" 
-                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('kasir.pos') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                <a href="{{ route('kasir.pos') }}"
+                    class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('kasir.pos') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
                     <x-lucide-shopping-cart class="w-4 h-4 inline-block mr-1" />
                     Transaksi
                 </a>
-                <a href="{{ route('kasir.debt') }}" 
-                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('kasir.debt') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                <a href="{{ route('kasir.debt') }}"
+                    class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('kasir.debt') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
                     <x-lucide-wallet class="w-4 h-4 inline-block mr-1" />
                     Pembayaran Hutang
                 </a>
@@ -43,6 +47,16 @@
                     <span class="text-sm font-semibold">{{ auth()->user()->name ?? 'Kasir' }}</span>
                     <span class="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full capitalize">Kasir</span>
                 </div>
+
+                <div class="h-8 w-px bg-border mx-1"></div>
+
+                <button type="button"
+                    onclick="Livewire.dispatch('open-admin-modal')"
+                    class="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+                    title="Akses Panel Admin">
+                    <x-lucide-shield-check class="w-4 h-4" />
+                    <span class="hidden md:inline">Admin Panel</span>
+                </button>
                 <form method="POST" action="{{ route('filament.admin.auth.logout') }}">
                     @csrf
                     <button type="submit" class="p-2 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-colors" title="Logout">
@@ -60,8 +74,10 @@
 
     {{-- Modals --}}
     @stack('modals')
-    
+    @livewire('auth.admin-access-modal')
+
     {{-- Toast --}}
     @livewire('notifications')
 </body>
+
 </html>

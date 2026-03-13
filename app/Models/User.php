@@ -48,9 +48,10 @@ class User extends Authenticatable implements \Filament\Models\Contracts\Filamen
 
     public function canAccessPanel(\Filament\Panel $panel): bool
     {
-        // Enforce that user must have a role to access the panel
-        // and ideally check specific permissions if needed, but 'hasAnyRole' is a good start
-        // as per requirements: "System must deny panel access if user has no role"
+        if ($panel->getId() === 'admin') {
+            return $this->hasAnyRole(['admin', 'owner']);
+        }
+
         return $this->roles()->count() > 0;
     }
 }

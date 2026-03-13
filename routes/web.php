@@ -9,11 +9,19 @@ use App\Http\Controllers\ProductBatchController;
 use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
-    if (Auth::check()) {
-        return redirect()->route('dashboard');
+    if (!Auth::check()) {
+        $kasir = \App\Models\User::where('email', 'kasir@pos.com')->first();
+        if ($kasir) {
+            Auth::login($kasir);
+        }
     }
-    return redirect()->to('/login');
-})->name('filament.admin.pages.dashboard');
+
+    if (Auth::check() && Auth::user()->hasRole('admin')) {
+        return redirect('/admin');
+    }
+
+    return redirect()->route('kasir.pos');
+});
 
 Route::middleware(['auth'])->group(function () {
     // Dashboard - accessible by all authenticated users (renders role-specific view)
