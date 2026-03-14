@@ -8,6 +8,8 @@ class ProductBatch extends Model
 {
     protected $fillable = [
         'product_id',
+        'is_bonus',
+        'bonus_note',
         'input_unit_name',
         'qty_masuk_original',
         'batch_code',
@@ -19,6 +21,7 @@ class ProductBatch extends Model
     ];
 
     protected $casts = [
+        'is_bonus' => 'boolean',
         'tanggal_masuk' => 'date',
     ];
 

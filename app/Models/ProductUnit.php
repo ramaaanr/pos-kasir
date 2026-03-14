@@ -10,6 +10,8 @@ class ProductUnit extends Model
         'product_id',
         'label',
         'multiplier',
+        'harga_jual',
+        'harga_beli',
     ];
 
     public function product()

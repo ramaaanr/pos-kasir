@@ -8,6 +8,8 @@ use App\Models\ProductCategory;
 use App\Services\ProductService;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ProductBatchList extends Component
 {
@@ -37,6 +39,9 @@ class ProductBatchList extends Component
     public $harga_jual = 0;
     public $qty_masuk = 0;
     public $tanggal_masuk = '';
+    public $is_bonus = false;
+    public $bonus_note = '';
+    public $currentMultiplier = 1;
     
     // Master Product Reference (for comparison)
     public $master_harga_beli = 0;
@@ -94,21 +99,26 @@ class ProductBatchList extends Component
             $this->margin = $this->harga_jual - $this->harga_beli;
 
             $this->qty_masuk = (float)($batch->qty_masuk_original ?? $batch->qty_masuk_base);
-            $this->tanggal_masuk = $batch->tanggal_masuk->format('Y-m-d');
+            $this->tanggal_masuk = \Carbon\Carbon::parse($batch->tanggal_masuk)->format('Y-m-d');
+            $this->is_bonus = $batch->is_bonus;
+            $this->bonus_note = $batch->bonus_note;
             $this->availableUnits = $batch->product->units;
 
             // Try to match unit_id from input_unit_name
             $this->unit_id = '';
             if ($batch->input_unit_name && $batch->input_unit_name !== $batch->product->base_unit) {
-                $matchedUnit = $this->availableUnits->where('label', $batch->input_unit_name)->first();
+                $units = collect($this->availableUnits);
+                $matchedUnit = $units->where('label', $batch->input_unit_name)->first();
                 if ($matchedUnit) {
-                    $this->unit_id = $matchedUnit->id;
+                    $this->unit_id = is_array($matchedUnit) ? $matchedUnit['id'] : $matchedUnit->id;
+                    $this->currentMultiplier = is_array($matchedUnit) ? $matchedUnit['multiplier'] : $matchedUnit->multiplier;
                 }
             }
         } else {
             $this->isEdit = false;
             $this->selectedBatchId = null;
-            $this->reset(['selectedProduct', 'productSearch', 'batch_code', 'harga_beli', 'harga_jual', 'margin', 'unit_id', 'availableUnits', 'master_harga_beli', 'master_harga_jual', 'qty_masuk']);
+            $this->reset(['selectedProduct', 'productSearch', 'batch_code', 'harga_beli', 'harga_jual', 'margin', 'unit_id', 'availableUnits', 'master_harga_beli', 'master_harga_jual', 'qty_masuk', 'is_bonus', 'bonus_note', 'currentMultiplier']);
+            $this->currentMultiplier = 1;
             $this->batch_code = $service->generateBatchCode();
             $this->tanggal_masuk = date('Y-m-d');
         }
@@ -165,7 +175,7 @@ class ProductBatchList extends Component
 
             \App\Models\ProductLog::create([
                 'product_id' => $product->id,
-                'user_id' => auth()->id(),
+                'user_id' => \Illuminate\Support\Facades\Auth::id(),
                 'action' => 'updated',
                 'description' => 'Update harga dari Batch Form',
                 'changes' => [
@@ -190,6 +200,7 @@ class ProductBatchList extends Component
             $this->productSearch = $product->nama;
             $this->availableUnits = $product->units;
             $this->unit_id = ''; // Default to base unit
+            $this->currentMultiplier = 1;
             
             // Auto-fill from master
             $this->master_harga_beli = $product->harga_beli_default ?? 0;
@@ -197,7 +208,34 @@ class ProductBatchList extends Component
             
             $this->harga_beli = $this->master_harga_beli;
             $this->harga_jual = $this->master_harga_jual;
+
+            // Try to match unit price if master has units
+            if ($this->unit_id) {
+                $unit = collect($this->availableUnits)->where('id', $this->unit_id)->first();
+                if ($unit && $unit->harga_beli) {
+                    $this->harga_beli = $unit->harga_beli;
+                    $this->harga_jual = $unit->harga_jual ?? ($this->master_harga_jual * $unit->multiplier);
+                }
+            }
+
             $this->margin = $this->harga_jual - $this->harga_beli;
+        }
+    }
+
+    public function updatedUnitId($value)
+    {
+        if ($value && $this->selectedProduct) {
+            $unit = collect($this->availableUnits)->where('id', $value)->first();
+            if ($unit) {
+                $this->currentMultiplier = is_array($unit) ? $unit['multiplier'] : $unit->multiplier;
+                if ($unit->harga_beli) {
+                    $this->harga_beli = $unit->harga_beli;
+                    $this->harga_jual = $unit->harga_jual ?? ($this->master_harga_jual * $this->currentMultiplier);
+                    $this->calculateMargin();
+                }
+            }
+        } else {
+            $this->currentMultiplier = 1;
         }
     }
 
@@ -226,7 +264,21 @@ class ProductBatchList extends Component
 
     public function updatedHargaBeli()
     {
+        if ($this->is_bonus) {
+            $this->harga_beli = 0;
+        }
         $this->calculateHargaJual();
+    }
+
+    public function updatedIsBonus($value)
+    {
+        if ($value) {
+            $this->harga_beli = 0;
+            $this->margin = $this->harga_jual; // If bonus, margin = selling price
+        } else {
+            $this->harga_beli = $this->master_harga_beli;
+            $this->margin = $this->harga_jual - $this->harga_beli;
+        }
     }
 
     public function updatedMargin()
@@ -277,6 +329,39 @@ class ProductBatchList extends Component
     private function calculateQuickMargin()
     {
         $this->quick_margin = (float)$this->quick_harga_jual - (float)$this->quick_harga_beli;
+        $this->updateQuickUnitsPrices();
+    }
+
+    private function updateQuickUnitsPrices()
+    {
+        foreach ($this->quick_units as $index => $unit) {
+            if (!$unit['is_nonlinear']) {
+                $this->quick_units[$index]['harga_jual'] = (float)$this->quick_harga_jual * (float)$unit['multiplier'];
+                $this->quick_units[$index]['harga_beli'] = (float)$this->quick_harga_beli * (float)$unit['multiplier'];
+            }
+        }
+    }
+
+    public function updatedQuickUnits($value, $key)
+    {
+        // $key will be something like '0.multiplier' or '0.is_nonlinear'
+        if (str_contains($key, 'multiplier') || str_contains($key, 'is_nonlinear')) {
+            $parts = explode('.', $key);
+            $index = $parts[0];
+
+            // If nonlinear is just turned on or multiplier changed, pre-fill prices
+            if ($this->quick_units[$index]['is_nonlinear']) {
+                if (is_null($this->quick_units[$index]['harga_jual']) || $this->quick_units[$index]['harga_jual'] == 0) {
+                    $this->quick_units[$index]['harga_jual'] = (float)$this->quick_harga_jual * (float)$this->quick_units[$index]['multiplier'];
+                }
+                if (is_null($this->quick_units[$index]['harga_beli']) || $this->quick_units[$index]['harga_beli'] == 0) {
+                    $this->quick_units[$index]['harga_beli'] = (float)$this->quick_harga_beli * (float)$this->quick_units[$index]['multiplier'];
+                }
+            } else {
+                $this->quick_units[$index]['harga_jual'] = (float)$this->quick_harga_jual * (float)$this->quick_units[$index]['multiplier'];
+                $this->quick_units[$index]['harga_beli'] = (float)$this->quick_harga_beli * (float)$this->quick_units[$index]['multiplier'];
+            }
+        }
     }
 
     public function generateQuickBarcode(ProductService $service)
@@ -293,7 +378,13 @@ class ProductBatchList extends Component
 
     public function addQuickUnit()
     {
-        $this->quick_units[] = ['label' => '', 'multiplier' => 1];
+        $this->quick_units[] = [
+            'label' => '',
+            'multiplier' => 1,
+            'harga_jual' => null,
+            'harga_beli' => null,
+            'is_nonlinear' => false
+        ];
     }
 
     public function removeQuickUnit($index)
@@ -304,27 +395,42 @@ class ProductBatchList extends Component
 
     public function storeQuickProduct(ProductService $service)
     {
-        $this->validate([
-            'quick_nama' => 'required|min:3',
-            'quick_category_name' => 'required|min:2',
-            'quick_kode_produk' => 'required',
-            'quick_harga_beli' => 'required|numeric|min:0',
-            'quick_harga_jual' => 'required|numeric|min:0',
-            'quick_base_unit' => 'required',
-        ]);
+        Log::info('storeQuickProduct: Method called');
+        $this->resetValidation();
 
         try {
+            Log::info('storeQuickProduct: Starting validation');
+            $this->validate([
+                'quick_nama' => 'required|min:3',
+                'quick_category_name' => 'required|min:2',
+                'quick_kode_produk' => 'required',
+                'quick_harga_beli' => 'required|numeric|min:0',
+                'quick_harga_jual' => 'required|numeric|min:0',
+                'quick_base_unit' => 'required',
+                'quick_units.*.label' => 'sometimes|required',
+                'quick_units.*.multiplier' => 'sometimes|required|numeric|min:1',
+                'quick_units.*.harga_jual' => 'nullable|numeric|min:0',
+                'quick_units.*.harga_beli' => 'nullable|numeric|min:0',
+            ], [
+                'quick_units.*.label.required' => 'Label satuan harus diisi',
+                'quick_units.*.multiplier.required' => 'Pengali harus diisi',
+                'quick_units.*.multiplier.min' => 'Pengali minimal 1',
+            ]);
+            Log::info('storeQuickProduct: Validation passed');
+
+            $this->dispatch('toast', ['type' => 'info', 'message' => 'Sedang memproses...']);
+
             // Find or Create Category
             $category = ProductCategory::where('name', 'like', trim($this->quick_category_name))->first();
 
             if ($category) {
-                $this->dispatch('toast', ['type' => 'info', 'message' => "Menggunakan kategori existing: {$category->name}"]);
+                Log::info('storeQuickProduct: Using existing category', ['name' => $category->name]);
             } else {
+                Log::info('storeQuickProduct: Creating new category', ['name' => $this->quick_category_name]);
                 $category = ProductCategory::create([
                     'name' => trim($this->quick_category_name),
                     'is_active' => true
                 ]);
-                $this->dispatch('toast', ['type' => 'success', 'message' => "Kategori baru '{$category->name}' berhasil dibuat"]);
 
                 \App\Models\ProductCategoryLog::create([
                     'category_id' => $category->id,
@@ -344,13 +450,25 @@ class ProductBatchList extends Component
                 'units' => $this->quick_units
             ];
 
+            Log::info('storeQuickProduct: Calling service createProduct', ['data' => $data]);
             $product = $service->createProduct($data);
+            Log::info('storeQuickProduct: Product created successfully', ['id' => $product->id]);
             
             $this->showQuickProductModal = false;
             $this->selectProduct($product->id);
+            Log::info('storeQuickProduct: selectProduct called');
             $this->dispatch('toast', ['type' => 'success', 'message' => 'Produk Master baru berhasil dibuat']);
-        } catch (\Exception $e) {
-            $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
+        } catch (ValidationException $e) {
+            Log::warning('storeQuickProduct: Validation failed', ['errors' => $e->errors()]);
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error('storeQuickProduct: CRITICAL FAILURE', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal: ' . $e->getMessage()]);
         }
     }
 
@@ -380,7 +498,9 @@ class ProductBatchList extends Component
                 'harga_beli_per_base' => $this->harga_beli,
                 'harga_jual_per_base' => $this->harga_jual,
                 'tanggal_masuk' => $this->tanggal_masuk,
-                'batch_code' => $this->batch_code, // Though service regenerates or uses this
+                'batch_code' => $this->batch_code,
+                'is_bonus' => $this->is_bonus,
+                'bonus_note' => $this->bonus_note,
             ];
 
             if ($this->isEdit) {

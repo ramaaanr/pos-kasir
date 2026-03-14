@@ -14,6 +14,7 @@ class SaleItem extends Model
         'product_id',
         'product_batch_id',
         'qty_base',
+        'is_bonus_item',
         'unit_label',
         'unit_multiplier',
         'harga_jual_per_unit',
@@ -22,6 +23,7 @@ class SaleItem extends Model
 
     protected $casts = [
         'qty_base' => 'integer',
+        'is_bonus_item' => 'boolean',
         'unit_multiplier' => 'integer',
         'harga_jual_per_unit' => 'integer',
         'subtotal' => 'integer',

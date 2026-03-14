@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\Product;
 use App\Models\ProductBatch;
 use App\Models\Debt;
@@ -318,6 +319,36 @@ class ReportService
                 ->latest()
                 ->limit(5)
                 ->get()
+        ];
+    }
+
+    /**
+     * 14. Laporan Stok Bonus
+     */
+    public function getBonusReport($startDate = null, $endDate = null)
+    {
+        $batchQuery = ProductBatch::where('is_bonus', true)
+            ->when($startDate, fn($q) => $q->whereDate('tanggal_masuk', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->whereDate('tanggal_masuk', '<=', $endDate));
+
+        $itemQuery = SaleItem::where('is_bonus_item', true)
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->whereIn('sales.status', ['completed', 'partial'])
+            ->when($startDate, fn($q) => $q->whereDate('sales.created_at', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->whereDate('sales.created_at', '<=', $endDate));
+
+        return [
+            'total_batches_received' => (clone $batchQuery)->count(),
+            'total_qty_received' => (clone $batchQuery)->sum('qty_masuk_base'),
+            'total_items_given' => (clone $itemQuery)->sum('qty_base'),
+            'remaining_bonus_stock' => ProductBatch::where('is_bonus', true)->sum('qty_sisa_base'),
+            'bonus_by_product' => ProductBatch::where('is_bonus', true)
+                ->select('product_id', DB::raw('SUM(qty_masuk_base) as total_masuk'), DB::raw('SUM(qty_sisa_base) as total_sisa'))
+                ->with('product')
+                ->groupBy('product_id')
+                ->get(),
+            'recent_bonus_batches' => (clone $batchQuery)->with('product')->latest()->limit(10)->get(),
+            'recent_bonus_items' => (clone $itemQuery)->with(['product', 'sale'])->latest('sale_items.created_at')->limit(10)->get()
         ];
     }
 }

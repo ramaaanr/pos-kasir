@@ -45,11 +45,22 @@ class PrinterService
         $content .= $m . str_repeat('-', $this->paperWidth) . "\n";
 
         // Items
+        $bonusCount = 0;
+        $bonusDiscount = 0;
+
         if ($sale->items && $sale->items->count() > 0) {
             foreach ($sale->items as $item) {
                 $name = $item->product->nama ?? 'Produk';
+                $isBonus = $item->is_bonus_item;
                 $qty = ($item->qty_base ?? 0) / ($item->unit_multiplier ?? 1);
                 $unit = $item->unit_label ?? 'pcs';
+
+                if ($isBonus) {
+                    $bonusCount += $qty;
+                    $bonusDiscount += (int)($qty * $item->product->harga_jual_default * $item->unit_multiplier);
+                    $name .= " (BONUS)";
+                }
+
                 $price = ($item->harga_jual_per_unit ?? 0) * ($item->unit_multiplier ?? 1);
                 $subtotal = $item->subtotal ?? 0;
 
@@ -73,6 +84,15 @@ class PrinterService
         $content .= $m . str_repeat('-', $this->paperWidth) . "\n";
 
         // Totals
+        if ($bonusCount > 0) {
+            $subValue = number_format((float)($sale->total ?? 0), 0, ',', '.');
+            $bonusValStr = "-" . number_format((float)$bonusDiscount, 0, ',', '.');
+
+            $content .= $m . $this->textToRight("SUBTOTAL", "Rp $subValue");
+            $content .= $m . $this->textToRight("BONUS ($bonusCount)", $bonusValStr);
+            $content .= $m . str_repeat('-', $this->paperWidth) . "\n";
+        }
+
         $total = number_format((float)($sale->total ?? 0), 0, ',', '.');
         $content .= $m . $this->textToRight("TOTAL", "Rp $total");
 

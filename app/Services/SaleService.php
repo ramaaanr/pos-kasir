@@ -30,6 +30,7 @@ class SaleService
         
         $item = SaleItem::where('sale_id', $sale->id)
             ->where('product_id', $productId)
+            ->where('is_bonus_item', false) // Always add to regular item row
             ->whereNull('product_batch_id') // Correct: Draft items have null batch
             ->first();
 
@@ -43,6 +44,7 @@ class SaleService
                 'sale_id' => $sale->id,
                 'product_id' => $product->id,
                 'qty_base' => $qty,
+                'is_bonus_item' => false,
                 'unit_label' => $product->base_unit,
                 'unit_multiplier' => 1,
                 'harga_jual_per_unit' => $product->harga_jual_default,
@@ -65,6 +67,11 @@ class SaleService
         if ($qty < 1) {
             $item->delete();
         } else {
+            // BONUS CHECK (Validation moved to finalization to allow Warning UI)
+            if ($item->is_bonus_item) {
+                // Allow in draft, checked again in finalizeSale
+            }
+
             $item->update([
                 'qty_base' => $qty,
                 'subtotal' => $qty * $item->harga_jual_per_unit
@@ -72,6 +79,101 @@ class SaleService
         }
 
         $this->updateSaleTotal($item->sale);
+    }
+
+    /**
+     * Toggle bonus status of a sale item.
+     */
+    public function toggleBonusItem(SaleItem $item)
+    {
+        if ($item->sale->status !== 'draft') {
+            throw new Exception("Cannot modify items of a finalized sale.");
+        }
+
+        $sale = $item->sale;
+        $productId = $item->product_id;
+        $targetIsBonus = !$item->is_bonus_item;
+
+        // Find the "opposite" item (if current is regular, find bonus; if current is bonus, find regular)
+        $oppositeItem = SaleItem::where('sale_id', $sale->id)
+            ->where('product_id', $productId)
+            ->where('is_bonus_item', $targetIsBonus)
+            ->whereNull('product_batch_id')
+            ->first();
+
+        // SPLIT/MERGE LOGIC: Bonus availability checked in finalization to allow Warning UI
+        if ($targetIsBonus) {
+            // Allow in draft, checked again in finalizeSale
+        }
+
+        // SPLIT LOGIC: If qty > 1, move only 1 unit to the opposite category
+        if ($item->qty_base > 1) {
+            $item->decrement('qty_base', 1);
+            $item->update(['subtotal' => $item->qty_base * $item->harga_jual_per_unit]);
+
+            if ($oppositeItem) {
+                $oppositeItem->increment('qty_base', 1);
+                $oppositeItem->update(['subtotal' => $oppositeItem->qty_base * $oppositeItem->harga_jual_per_unit]);
+            } else {
+                $newPrice = $targetIsBonus ? 0 : $item->product->harga_jual_default;
+                SaleItem::create([
+                    'sale_id' => $sale->id,
+                    'product_id' => $productId,
+                    'qty_base' => 1,
+                    'is_bonus_item' => $targetIsBonus,
+                    'unit_label' => $item->unit_label,
+                    'unit_multiplier' => $item->unit_multiplier,
+                    'harga_jual_per_unit' => $newPrice,
+                    'subtotal' => $newPrice,
+                ]);
+            }
+        } else {
+            // MERGE/TOGGLE LOGIC: If qty == 1, merge with existing opposite or just toggle
+            if ($oppositeItem) {
+                $oppositeItem->increment('qty_base', 1);
+                $oppositeItem->update(['subtotal' => $oppositeItem->qty_base * $oppositeItem->harga_jual_per_unit]);
+                $item->delete();
+            } else {
+                $isBonus = !$item->is_bonus_item;
+                $newPrice = 0;
+                if (!$isBonus) {
+                    // Back to regular, find unit price if any
+                    $unit = ProductUnit::where('product_id', $productId)
+                        ->where('label', $item->unit_label)
+                        ->first();
+                    $newPrice = $unit->harga_jual ?? ($item->product->harga_jual_default * $item->unit_multiplier);
+                }
+
+                $item->update([
+                    'is_bonus_item' => $isBonus,
+                    'harga_jual_per_unit' => $newPrice,
+                    'subtotal' => (int)($item->qty_base * $newPrice)
+                ]);
+            }
+        }
+
+        $this->updateSaleTotal($sale);
+    }
+
+    /**
+     * Get available bonus stock for a product, accounting for items already in a draft sale.
+     */
+    public function getAvailableBonusStock(int $productId, int $saleId): int
+    {
+        $totalBonusStock = ProductBatch::where('product_id', $productId)
+            ->where('is_bonus', true)
+            ->sum('qty_sisa_base');
+
+        // Subtract bonus items from ALL other draft sales, excluding the current one.
+        $reservedBonus = SaleItem::where('product_id', $productId)
+            ->where('is_bonus_item', true)
+            ->where('sale_id', '!=', $saleId) // Exclude items from the current sale
+            ->whereHas('sale', function ($q) {
+                $q->where('status', 'draft');
+            })
+            ->sum('qty_base');
+
+        return (int)max(0, $totalBonusStock - $reservedBonus);
     }
 
     /**
@@ -86,10 +188,12 @@ class SaleService
         if ($unit) {
             $label = $unit->label;
             $multiplier = $unit->multiplier;
+            $harga_jual = $unit->harga_jual ?? ($item->product->harga_jual_default * $multiplier);
         } else {
             // Revert to base unit
             $label = $item->product->base_unit;
             $multiplier = 1;
+            $harga_jual = $item->product->harga_jual_default;
         }
 
         $newQtyBase = (int)($multiplier); // Reset to 1 unit of the new selection
@@ -106,7 +210,8 @@ class SaleService
             'unit_label' => $label,
             'unit_multiplier' => $multiplier,
             'qty_base' => $newQtyBase,
-            'subtotal' => $newQtyBase * $item->harga_jual_per_unit
+            'harga_jual_per_unit' => $harga_jual,
+            'subtotal' => $harga_jual // Since qty is reset to 1 (of this unit)
         ]);
 
         $this->updateSaleTotal($item->sale);
@@ -163,6 +268,7 @@ class SaleService
 
             $batches = ProductBatch::where('product_id', $item->product_id)
                 ->where('qty_sisa_base', '>', 0)
+                ->orderByRaw('is_bonus DESC')
                 ->orderBy('tanggal_masuk', 'asc')
                 ->get();
 

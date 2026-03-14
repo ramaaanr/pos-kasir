@@ -7,6 +7,7 @@ use App\Models\ProductLog;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ProductService
 {
@@ -59,12 +60,16 @@ class ProductService
      */
     public function createProduct(array $data): Product
     {
+        Log::info('ProductService: createProduct started', ['nama' => $data['nama'] ?? 'N/A']);
         return DB::transaction(function () use ($data) {
+            Log::info('ProductService: In transaction');
             if (!$this->isBarcodeUnique($data['kode_produk'])) {
+                Log::warning('ProductService: Barcode not unique', ['barcode' => $data['kode_produk']]);
                 $existingProduct = Product::where('kode_produk', $data['kode_produk'])->first();
                 throw new \Exception("Barcode sudah digunakan oleh produk: " . $existingProduct->nama);
             }
 
+            Log::info('ProductService: Creating product record');
             $product = Product::create([
                 'category_id' => $data['category_id'],
                 'kode_produk' => $data['kode_produk'],
@@ -74,6 +79,7 @@ class ProductService
                 'harga_jual_default' => $data['harga_jual_default'],
                 'is_active' => $data['is_active'] ?? true,
             ]);
+            Log::info('ProductService: Product record created', ['id' => $product->id]);
 
             ProductLog::create([
                 'product_id' => $product->id,
@@ -84,16 +90,21 @@ class ProductService
 
             // Handle units
             if (!empty($data['units']) && is_array($data['units'])) {
+                Log::info('ProductService: Creating units', ['count' => count($data['units'])]);
                 foreach ($data['units'] as $unit) {
                     if (!empty($unit['label']) && !empty($unit['multiplier'])) {
+                        Log::info('ProductService: Adding unit', ['label' => $unit['label']]);
                         $product->units()->create([
                             'label' => $unit['label'],
                             'multiplier' => $unit['multiplier'],
+                            'harga_jual' => $unit['harga_jual'] ?? null,
+                            'harga_beli' => $unit['harga_beli'] ?? null,
                         ]);
                     }
                 }
             }
 
+            Log::info('ProductService: createProduct finished successfully');
             return $product;
         });
     }
@@ -179,6 +190,8 @@ class ProductService
                         $product->units()->create([
                             'label' => $unit['label'],
                             'multiplier' => $unit['multiplier'],
+                            'harga_jual' => $unit['harga_jual'] ?? null,
+                            'harga_beli' => $unit['harga_beli'] ?? null,
                         ]);
                     }
                 }

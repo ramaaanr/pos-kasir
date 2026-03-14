@@ -8,6 +8,7 @@ use App\Services\ProductService;
 use App\Services\ProductCategoryService;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\Log;
 
 class ProductList extends Component
 {
@@ -115,7 +116,13 @@ class ProductList extends Component
             $this->margin = (float)$this->harga_jual - (float)$this->harga_beli;
             $this->base_unit = $product->base_unit;
             $this->is_active = $product->is_active;
-            $this->units = $product->units->map(fn($u) => ['label' => $u->label, 'multiplier' => $u->multiplier])->toArray();
+            $this->units = $product->units->map(fn($u) => [
+                'label' => $u->label,
+                'multiplier' => $u->multiplier,
+                'harga_jual' => $u->harga_jual,
+                'harga_beli' => $u->harga_beli,
+                'is_nonlinear' => !is_null($u->harga_jual)
+            ])->toArray();
         } else {
             $this->isEdit = false;
             $this->selectedProductId = null;
@@ -134,29 +141,39 @@ class ProductList extends Component
 
     public function store(ProductService $service)
     {
+        Log::info('ProductList::store called', ['isEdit' => $this->isEdit]);
+        $this->resetValidation();
+
         $this->validate([
             'nama' => 'required|min:3',
             'category_name' => 'required|min:2',
             'kode_produk' => 'required',
-            'harga_beli' => 'required|numeric|min:0',
-            'harga_jual' => 'required|numeric|min:0',
             'base_unit' => 'required',
+            'units.*.label' => 'required_with:units.*.multiplier',
+            'units.*.multiplier' => 'required_with:units.*.label|nullable|numeric|min:1',
+            'units.*.harga_jual' => 'nullable|numeric|min:0',
+            'units.*.harga_beli' => 'nullable|numeric|min:0',
         ]);
+        Log::info('ProductList::store validation passed');
 
         try {
+            $this->dispatch('toast', ['type' => 'info', 'message' => 'Sedang memproses...']);
+
             // Find or Create Category
+            Log::info('ProductList::store finding category', ['name' => $this->category_name]);
             $category = ProductCategory::where('name', 'like', trim($this->category_name))->first();
 
             if ($category) {
+                Log::info('ProductList::store existing category', ['id' => $category->id]);
                 if (!$this->isEdit || ($this->selectedProductId && Product::find($this->selectedProductId)->category_id !== $category->id)) {
                     $this->dispatch('toast', ['type' => 'info', 'message' => "Menggunakan kategori existing: {$category->name}"]);
                 }
             } else {
+                Log::info('ProductList::store creating category');
                 $category = ProductCategory::create([
                     'name' => trim($this->category_name),
                     'is_active' => true
                 ]);
-                $this->dispatch('toast', ['type' => 'success', 'message' => "Kategori baru '{$category->name}' berhasil dibuat"]);
 
                 \App\Models\ProductCategoryLog::create([
                     'category_id' => $category->id,
@@ -177,23 +194,37 @@ class ProductList extends Component
             ];
 
             if ($this->isEdit) {
+                Log::info('ProductList::store updating product', ['id' => $this->selectedProductId]);
                 $service->updateProduct($this->selectedProductId, $data);
                 $message = 'Produk berhasil diperbarui';
             } else {
+                Log::info('ProductList::store creating product');
                 $service->createProduct($data);
                 $message = 'Produk berhasil ditambahkan';
             }
 
+            Log::info('ProductList::store SUCCESS');
             $this->closeModal();
             $this->dispatch('toast', ['type' => 'success', 'message' => $message]);
-        } catch (\Exception $e) {
-            $this->dispatch('toast', ['type' => 'error', 'message' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            Log::error('ProductList::store FAILED', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            $this->dispatch('toast', ['type' => 'error', 'message' => 'Gagal: ' . $e->getMessage()]);
         }
     }
 
     public function addUnit()
     {
-        $this->units[] = ['label' => '', 'multiplier' => ''];
+        $this->units[] = [
+            'label' => '',
+            'multiplier' => '',
+            'harga_jual' => null,
+            'harga_beli' => null,
+            'is_nonlinear' => false
+        ];
     }
 
     public function removeUnit($index)

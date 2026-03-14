@@ -412,33 +412,92 @@
                             </div>
 
                             @if(count($units) > 0)
-                            <div class="space-y-3">
+                            <div class="space-y-4">
                                 @foreach($units as $index => $unit)
-                                <div class="grid grid-cols-12 gap-3 items-end animate-in fade-in slide-in-from-top-2 duration-300">
-                                    <div class="col-span-6 space-y-1.5">
-                                        <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Label Satuan</label>
-                                        <input
-                                            type="text"
-                                            wire:model="units.{{ $index }}.label"
-                                            placeholder="Cth: Box, Pack"
-                                            class="flex h-9 w-full rounded-lg border border-input bg-background/50 px-3 py-1 text-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/30">
+                                <div class="p-3 rounded-lg border border-border bg-background/50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div class="grid grid-cols-12 gap-3">
+                                        {{-- Label & Multiplier --}}
+                                        <div class="col-span-6 space-y-1.5">
+                                            <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Label Satuan</label>
+                                            <input
+                                                type="text"
+                                                wire:model="units.{{ $index }}.label"
+                                                placeholder="Cth: Box, Pack"
+                                                class="flex h-9 w-full rounded-lg border border-input bg-background/50 px-3 py-1 text-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/30">
+                                        </div>
+                                        <div class="col-span-4 space-y-1.5">
+                                            <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Pengali (Isi)</label>
+                                            <input
+                                                type="number"
+                                                wire:model.live="units.{{ $index }}.multiplier"
+                                                placeholder="Cth: 10"
+                                                class="flex h-9 w-full rounded-lg border border-input bg-background/50 px-3 py-1 text-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/30">
+                                        </div>
+                                        <div class="col-span-2 flex items-end justify-center pb-0.5">
+                                            <button
+                                                type="button"
+                                                wire:click="removeUnit({{ $index }})"
+                                                class="h-9 w-9 flex items-center justify-center rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
+                                                title="Hapus unit">
+                                                <x-lucide-trash-2 class="h-4 w-4" />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="col-span-4 space-y-1.5">
-                                        <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Pengali (Isi)</label>
-                                        <input
-                                            type="number"
-                                            wire:model="units.{{ $index }}.multiplier"
-                                            placeholder="Cth: 10"
-                                            class="flex h-9 w-full rounded-lg border border-input bg-background/50 px-3 py-1 text-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/30">
-                                    </div>
-                                    <div class="col-span-2 pb-0.5">
+
+                                    {{-- Non-linear pricing toggle --}}
+                                    <div class="flex items-center justify-between py-2 border-t border-border/50">
+                                        <div class="flex items-center gap-2">
+                                            <x-lucide-trending-up class="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span class="text-xs font-semibold text-foreground">Harga tidak mengikuti kelipatan</span>
+                                        </div>
                                         <button
                                             type="button"
-                                            wire:click="removeUnit({{ $index }})"
-                                            class="h-9 w-full flex items-center justify-center rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
-                                            title="Hapus unit">
-                                            <x-lucide-trash-2 class="h-4 w-4" />
+                                            wire:click="$toggle('units.{{ $index }}.is_nonlinear')"
+                                            class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus-visible:outline-none {{ $units[$index]['is_nonlinear'] ? 'bg-orange-500' : 'bg-muted-foreground/30' }}">
+                                            <span class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform {{ $units[$index]['is_nonlinear'] ? 'translate-x-5' : 'translate-x-1' }}"></span>
                                         </button>
+                                    </div>
+
+                                    {{-- Pricing fields if non-linear --}}
+                                    @if($units[$index]['is_nonlinear'])
+                                    <div class="grid grid-cols-2 gap-4 animate-in zoom-in duration-200">
+                                        <div class="space-y-1.5">
+                                            <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Harga Jual per {{ $unit['label'] ?: 'Unit' }}</label>
+                                            <input
+                                                type="number"
+                                                wire:model="units.{{ $index }}.harga_jual"
+                                                class="flex h-9 w-full rounded-lg border border-primary/30 bg-primary/5 px-3 py-1 text-sm font-bold text-primary focus-visible:ring-2 focus-visible:ring-primary/30">
+                                        </div>
+                                        <div class="space-y-1.5 opacity-50">
+                                            <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Harga Beli per {{ $unit['label'] ?: 'Unit' }}</label>
+                                            <input
+                                                type="number"
+                                                wire:model="units.{{ $index }}.harga_beli"
+                                                class="flex h-9 w-full rounded-lg border border-input bg-background/50 px-3 py-1 text-sm">
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    {{-- Price Comparison Preview --}}
+                                    <div class="text-[10px] space-y-1 bg-muted/50 p-2 rounded-lg border border-border/50">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-muted-foreground">Harga Linear (Auto hitung):</span>
+                                            <span class="font-medium">Rp {{ number_format(($harga_jual ?: 0) * ($unit['multiplier'] ?: 0), 0, ',', '.') }}</span>
+                                        </div>
+                                        <div class="flex justify-between items-center text-primary font-bold">
+                                            <span>Harga yang Dipakai:</span>
+                                            <span>
+                                                @if($units[$index]['is_nonlinear'] && $units[$index]['harga_jual'])
+                                                Rp {{ number_format($units[$index]['harga_jual'], 0, ',', '.') }}
+                                                @php $diff = ($harga_jual * $unit['multiplier']) - $units[$index]['harga_jual']; @endphp
+                                                @if($diff > 0)
+                                                <span class="text-green-500 text-[9px] font-black underline ml-1">(Hemat Rp {{ number_format($diff, 0, ',', '.') }})</span>
+                                                @endif
+                                                @else
+                                                Rp {{ number_format(($harga_jual ?: 0) * ($unit['multiplier'] ?: 0), 0, ',', '.') }}
+                                                @endif
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                                 @endforeach

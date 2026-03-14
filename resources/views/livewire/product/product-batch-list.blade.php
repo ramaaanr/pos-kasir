@@ -86,12 +86,19 @@
                             {{ $batch->tanggal_masuk->format('d/m/Y') }}
                         </td>
                         <td class="px-4 py-4">
-                            <button
-                                wire:click="openHistoryModal({{ $batch->id }})"
-                                class="font-mono text-xs font-bold text-primary hover:underline hover:text-primary/80 transition-colors text-left"
-                                title="Klik untuk lihat riwayat">
-                                {{ $batch->batch_code }}
-                            </button>
+                            <div class="flex flex-col gap-1">
+                                <button
+                                    wire:click="openHistoryModal({{ $batch->id }})"
+                                    class="font-mono text-xs font-bold text-primary hover:underline hover:text-primary/80 transition-colors text-left"
+                                    title="Klik untuk lihat riwayat">
+                                    {{ $batch->batch_code }}
+                                </button>
+                                @if($batch->is_bonus)
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black bg-blue-500/10 text-blue-600 border border-blue-500/20 uppercase w-fit">
+                                    Bonus
+                                </span>
+                                @endif
+                            </div>
                         </td>
                         <td class="px-4 py-4 font-medium text-foreground">
                             {{ $batch->product->nama }}
@@ -351,6 +358,31 @@
                         </div>
                     </div>
 
+                    {{-- Bonus Toggle --}}
+                    <div class="bg-blue-500/5 border border-blue-500/10 rounded-xl p-4 space-y-3">
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <div class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" wire:model.live="is_bonus" class="sr-only peer">
+                                <div class="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 transition-colors"></div>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-sm font-bold text-blue-700">Batch Bonus dari Distributor?</span>
+                                <span class="text-[10px] text-blue-600/60 uppercase font-bold tracking-tighter">Tandai jika batch ini didapat gratis</span>
+                            </div>
+                        </label>
+
+                        @if($is_bonus)
+                        <div x-show="$wire.is_bonus" x-transition.opacity class="space-y-2 pt-1 animate-in slide-in-from-top-1 duration-200">
+                            <label class="text-[10px] font-black text-blue-700 uppercase tracking-widest">Keterangan Bonus</label>
+                            <input
+                                type="text"
+                                wire:model="bonus_note"
+                                placeholder="Misal: Bonus pembelian Milo 2 Renteng"
+                                class="flex h-10 w-full rounded-lg border border-blue-500/20 bg-background/80 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all">
+                        </div>
+                        @endif
+                    </div>
+
                     <div class="bg-card p-5 rounded-2xl space-y-5 border-2 border-muted/50 shadow-sm relative overflow-hidden group/pricing">
                         <div class="absolute top-0 right-0 p-3">
                             <x-lucide-badge-dollar-sign class="h-10 w-10 text-primary/5 -rotate-12 group-hover/pricing:scale-110 transition-transform" />
@@ -361,16 +393,17 @@
                             <div class="space-y-2">
                                 <label class="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
                                     <x-lucide-shopping-cart class="h-3 w-3" />
-                                    Harga Beli (Base)
+                                    Harga Beli per {{ $unit_id ? collect($availableUnits)->where('id', $unit_id)->first()['label'] ?? 'Unit' : ($selectedProduct ? \App\Models\Product::find($selectedProduct)->base_unit : 'Unit') }}
                                 </label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground font-semibold text-xs">Rp</div>
                                     <input
                                         type="number"
                                         wire:model.live.debounce.500ms="harga_beli"
-                                        class="flex h-11 w-full rounded-xl border-border bg-background pl-8 pr-3 py-2 text-sm font-bold focus:ring-4 focus:ring-primary/10 transition-all outline-none border-2">
+                                        class="flex h-11 w-full rounded-xl border-border bg-background pl-8 pr-3 py-2 text-sm font-bold focus:ring-4 focus:ring-primary/10 transition-all outline-none border-2 {{ $is_bonus ? 'bg-muted text-muted-foreground cursor-not-allowed border-dashed' : '' }}"
+                                        {{ $is_bonus ? 'disabled' : '' }}>
                                 </div>
-                                @if($selectedProduct && $harga_beli != $master_harga_beli)
+                                @if($selectedProduct && !$unit_id && $harga_beli != $master_harga_beli)
                                 <div class="flex items-center gap-1 text-[10px] text-destructive font-bold animate-pulse">
                                     <x-lucide-alert-circle class="h-3 w-3" />
                                     Harga berbeda dari Master (Rp {{ number_format($master_harga_beli, 0, ',', '.') }})
@@ -398,7 +431,7 @@
                         <div class="space-y-2">
                             <label class="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
                                 <x-lucide-tag class="h-3 w-3" />
-                                Harga Jual (Final)
+                                Harga Jual per {{ $unit_id ? collect($availableUnits)->where('id', $unit_id)->first()['label'] ?? 'Unit' : ($selectedProduct ? \App\Models\Product::find($selectedProduct)->base_unit : 'Unit') }}
                             </label>
                             <div class="relative group">
                                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-primary font-bold text-lg">Rp</div>
@@ -421,7 +454,7 @@
                                 <div></div>
                                 @endif
 
-                                @if($selectedProduct && ($harga_beli != $master_harga_beli || $harga_jual != $master_harga_jual))
+                                @if($selectedProduct && ($harga_beli != $master_harga_beli || $harga_jual != $master_harga_jual) && !$unit_id)
                                 <button
                                     type="button"
                                     @click="$wire.showConfirmMasterUpdate = true"
@@ -432,6 +465,25 @@
                                 @endif
                             </div>
                         </div>
+
+                        {{-- HPP Info Box (Visible when using units) --}}
+                        @if($unit_id && $currentMultiplier > 1 && $selectedProduct)
+                        <div class="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                            <div class="flex items-center gap-2">
+                                <div class="p-1 rounded-lg bg-orange-500 text-white">
+                                    <x-lucide-info class="h-3.5 w-3.5" />
+                                </div>
+                                <span class="text-xs font-black text-orange-700 uppercase tracking-tight">Konversi HPP ke Base Unit</span>
+                            </div>
+                            <div class="flex flex-col gap-0.5 pl-7">
+                                <span class="text-[10px] text-orange-600/80 font-bold uppercase tracking-tighter">HPP per {{ \App\Models\Product::find($selectedProduct)->base_unit }}</span>
+                                <span class="text-sm font-black text-orange-800">
+                                    Rp {{ number_format((int)round($harga_beli / $currentMultiplier), 0, ',', '.') }}
+                                    <span class="text-[10px] font-medium opacity-70">({{ $harga_beli }} / {{ $currentMultiplier }})</span>
+                                </span>
+                            </div>
+                        </div>
+                        @endif
                     </div>
 
                     {{-- Qty & Unit --}}
@@ -504,6 +556,12 @@
                             <span class="text-sm text-muted-foreground">Tanggal Masuk</span>
                             <span class="text-sm font-semibold">{{ $batchDetail->tanggal_masuk->format('d M Y') }}</span>
                         </div>
+                        @if($batchDetail->is_bonus)
+                        <div class="flex flex-col py-2 border-b border-border/50 gap-1 text-blue-600 bg-blue-50 rounded-lg px-3 -mx-3 border-hidden">
+                            <span class="text-[10px] font-black uppercase tracking-widest">Bonus Info</span>
+                            <p class="text-sm font-bold">{{ $batchDetail->bonus_note ?? 'Tanpa keterangan' }}</p>
+                        </div>
+                        @endif
                         <div class="flex justify-between items-center py-2 border-b border-border/50">
                             <span class="text-sm text-muted-foreground">Harga Beli / Unit</span>
                             <span class="text-sm font-semibold">Rp {{ number_format($batchDetail->harga_beli_per_unit, 0, ',', '.') }}</span>
@@ -759,6 +817,21 @@
                 </div>
 
                 <form wire:submit.prevent="storeQuickProduct" class="p-6 space-y-6">
+                    {{-- General Error Message --}}
+                    @if ($errors->any())
+                    <div class="px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div class="flex items-center gap-2 text-destructive">
+                            <x-lucide-alert-circle class="h-4 w-4" />
+                            <span class="text-xs font-bold uppercase tracking-wider">Perbaiki kesalahan di bawah:</span>
+                        </div>
+                        <ul class="mt-1 ml-6 list-disc text-[10px] text-destructive/80 font-medium">
+                            @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                    @endif
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2 md:col-span-2">
                             <label class="text-sm font-semibold text-foreground">Nama Produk <span class="text-destructive">*</span></label>
@@ -813,21 +886,108 @@
                                 </button>
                             </div>
                             @if(count($quick_units) > 0)
-                            <div class="space-y-3">
+                            <div class="space-y-4">
                                 @foreach($quick_units as $index => $unit)
-                                <div class="grid grid-cols-12 gap-3 items-end">
-                                    <div class="col-span-6 space-y-1.5">
-                                        <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Label Satuan</label>
-                                        <input type="text" wire:model="quick_units.{{ $index }}.label" placeholder="Cth: Box, Pack" class="flex h-9 w-full rounded-lg border border-input bg-background/50 px-3 py-1 text-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/30">
+                                <div wire:key="quick-unit-{{ $index }}" class="p-3 rounded-lg border border-border bg-background/50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div class="grid grid-cols-12 gap-3">
+                                        {{-- Label & Multiplier --}}
+                                        <div class="col-span-6 space-y-1.5">
+                                            <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Label Satuan</label>
+                                            <input
+                                                type="text"
+                                                wire:model="quick_units.{{ $index }}.label"
+                                                placeholder="Cth: Box, Pack"
+                                                class="flex h-9 w-full rounded-lg border border-input bg-background/50 px-3 py-1 text-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/30">
+                                        </div>
+                                        <div class="col-span-4 space-y-1.5">
+                                            <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Pengali (Isi)</label>
+                                            <input
+                                                type="number"
+                                                wire:model.live="quick_units.{{ $index }}.multiplier"
+                                                placeholder="Cth: 10"
+                                                class="flex h-9 w-full rounded-lg border border-input bg-background/50 px-3 py-1 text-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/30">
+                                        </div>
+                                        <div class="col-span-2 flex items-end justify-center pb-0.5">
+                                            <button
+                                                type="button"
+                                                wire:click="removeQuickUnit({{ $index }})"
+                                                class="h-9 w-9 flex items-center justify-center rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
+                                                title="Hapus unit">
+                                                <x-lucide-trash-2 class="h-4 w-4" />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="col-span-4 space-y-1.5">
-                                        <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Pengali (Isi)</label>
-                                        <input type="number" wire:model="quick_units.{{ $index }}.multiplier" class="flex h-9 w-full rounded-lg border border-input bg-background/50 px-3 py-1 text-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/30">
-                                    </div>
-                                    <div class="col-span-2 pb-0.5">
-                                        <button type="button" wire:click="removeQuickUnit({{ $index }})" class="h-9 w-full flex items-center justify-center rounded-lg text-destructive hover:bg-destructive/10 transition-colors">
-                                            <x-lucide-trash-2 class="h-4 w-4" />
+
+                                    {{-- Non-linear pricing toggle --}}
+                                    <div class="flex items-center justify-between py-2 border-t border-border/50">
+                                        <div class="flex items-center gap-2">
+                                            <x-lucide-trending-up class="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span class="text-xs font-semibold text-foreground">Harga tidak mengikuti kelipatan</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            wire:click="$toggle('quick_units.{{ $index }}.is_nonlinear')"
+                                            class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus-visible:outline-none {{ $quick_units[$index]['is_nonlinear'] ? 'bg-orange-500' : 'bg-muted-foreground/30' }}">
+                                            <span class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform {{ $quick_units[$index]['is_nonlinear'] ? 'translate-x-5' : 'translate-x-1' }}"></span>
                                         </button>
+                                    </div>
+
+                                    {{-- Pricing fields if non-linear --}}
+                                    @if($quick_units[$index]['is_nonlinear'])
+                                    <div class="grid grid-cols-2 gap-4 animate-in zoom-in duration-200">
+                                        <div class="space-y-1.5">
+                                            <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Harga Jual per {{ $unit['label'] ?: 'Unit' }}</label>
+                                            <input
+                                                type="number"
+                                                wire:model="quick_units.{{ $index }}.harga_jual"
+                                                class="flex h-9 w-full rounded-lg border border-primary/30 bg-primary/5 px-3 py-1 text-sm font-bold text-primary focus-visible:ring-2 focus-visible:ring-primary/30">
+                                            @error("quick_units.{$index}.harga_jual") <span class="text-[10px] text-destructive">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="space-y-1.5 opacity-50">
+                                            <label class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider ml-1">Harga Beli per {{ $unit['label'] ?: 'Unit' }}</label>
+                                            <input
+                                                type="number"
+                                                wire:model="quick_units.{{ $index }}.harga_beli"
+                                                class="flex h-9 w-full rounded-lg border border-input bg-background/50 px-3 py-1 text-sm">
+                                            @error("quick_units.{$index}.harga_beli") <span class="text-[10px] text-destructive">{{ $message }}</span> @enderror
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    {{-- Price Comparison Preview --}}
+                                    <div class="text-[10px] space-y-1 bg-muted/50 p-2 rounded-lg border border-border/50">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-muted-foreground">Harga Linear (Auto hitung):</span>
+                                            <span class="font-medium">Rp {{ number_format(($quick_harga_jual ?: 0) * ($unit['multiplier'] ?: 0), 0, ',', '.') }}</span>
+                                        </div>
+                                        <div class="flex justify-between items-center text-primary font-bold">
+                                            <span>Harga yang Dipakai:</span>
+                                            <span>
+                                                @if($quick_units[$index]['is_nonlinear'] && $quick_units[$index]['harga_jual'])
+                                                Rp {{ number_format($quick_units[$index]['harga_jual'], 0, ',', '.') }}
+                                                @php $diff = ($quick_harga_jual * $unit['multiplier']) - $quick_units[$index]['harga_jual']; @endphp
+                                                @if($diff > 0)
+                                                <span class="text-green-500 text-[9px] font-black underline ml-1">(Hemat Rp {{ number_format($diff, 0, ',', '.') }})</span>
+                                                @endif
+                                                @else
+                                                Rp {{ number_format(($quick_harga_jual ?: 0) * ($unit['multiplier'] ?: 0), 0, ',', '.') }}
+                                                @endif
+                                            </span>
+                                        </div>
+                                        @if($quick_units[$index]['is_nonlinear'] && ($quick_units[$index]['harga_jual'] ?? 0) > 0 && ($quick_units[$index]['harga_beli'] ?? 0) > 0)
+                                        <div class="flex justify-between items-center text-green-600 border-t border-border/30 pt-1 mt-1 font-bold">
+                                            <span>Profit Satuan Ini:</span>
+                                            <span>Rp {{ number_format($quick_units[$index]['harga_jual'] - $quick_units[$index]['harga_beli'], 0, ',', '.') }}</span>
+                                        </div>
+                                        @endif
+
+                                        {{-- HPP Info for Units --}}
+                                        @if($quick_units[$index]['is_nonlinear'] && ($unit['multiplier'] ?? 0) > 1 && ($quick_units[$index]['harga_beli'] ?? 0) > 0)
+                                        <div class="mt-1 flex items-center gap-1.5 text-[9px] text-orange-600 bg-orange-500/5 p-1 rounded border border-orange-500/20 italic">
+                                            <x-lucide-info class="h-2.5 w-2.5" />
+                                            HPP per unit base = Rp {{ number_format($quick_units[$index]['harga_beli'] / $unit['multiplier'], 0, ',', '.') }}
+                                        </div>
+                                        @endif
                                     </div>
                                 </div>
                                 @endforeach
@@ -840,22 +1000,32 @@
                         <div class="space-y-1.5">
                             <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Harga Beli (Rp)</span>
                             <input type="number" wire:model.live.debounce.250ms="quick_harga_beli" class="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
+                            @error('quick_harga_beli') <span class="text-xs text-destructive font-medium">{{ $message }}</span> @enderror
                         </div>
                         <div class="space-y-1.5">
                             <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Margin (Rp)</span>
                             <input type="number" wire:model.live.debounce.250ms="quick_margin" class="flex h-10 w-full rounded-lg border-2 border-green-500/30 bg-green-500/5 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/30 transition-all font-semibold text-green-600">
+                            @error('quick_margin') <span class="text-xs text-destructive font-medium">{{ $message }}</span> @enderror
                         </div>
                         <div class="space-y-1.5">
                             <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Harga Jual (Rp)</span>
                             <input type="number" wire:model.live.debounce.250ms="quick_harga_jual" class="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm font-bold text-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
+                            @error('quick_harga_jual') <span class="text-xs text-destructive font-medium">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
                     <div class="flex items-center justify-end gap-3 pt-4 border-t border-border">
                         <button type="button" @click="show = false" class="px-4 py-2 text-sm font-semibold rounded-lg text-muted-foreground hover:bg-muted transition-all">Batal</button>
-                        <button type="submit" class="px-6 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all flex items-center gap-2">
-                            <x-lucide-save class="h-4 w-4" />
-                            Simpan Produk & Gunakan
+                        <button
+                            type="submit"
+                            wire:loading.attr="disabled"
+                            class="px-6 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all flex items-center gap-2">
+
+                            <x-lucide-save wire:loading.remove class="h-4 w-4" />
+                            <x-lucide-loader-2 wire:loading class="h-4 w-4 animate-spin" />
+
+                            <span wire:loading.remove>Simpan Produk & Gunakan</span>
+                            <span wire:loading>Menyimpan...</span>
                         </button>
                     </div>
                 </form>

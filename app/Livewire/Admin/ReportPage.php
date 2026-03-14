@@ -179,14 +179,24 @@ class ReportPage extends Component
                     'Status' => strtoupper($r['status']),
                 ])->toArray();
                 break;
-            case 'fifo_compliance':
-                $filename = "FIFO Compliance - " . date('Y-m-d H-i') . ".xlsx";
                 $data = collect($service->getFIFOComplianceReport())->map(fn($r) => [
                     'Waktu Jual' => date('d/m/Y H:i', strtotime($r->sale_date)),
                     'Invoice' => $r->invoice_number,
                     'Batch' => $r->batch_code,
                     'Tgl Masuk Batch' => date('d/m/Y', strtotime($r->batch_date)),
                     'Qty' => $r->qty_base
+                ])->toArray();
+                break;
+            case 'bonus':
+                $filename = "Laporan Bonus - " . date('Y-m-d H-i') . ".xlsx";
+                $bonusData = $service->getBonusReport($this->startDate, $this->endDate);
+                $data = collect($bonusData['batches'])->map(fn($b) => [
+                    'Tanggal Masuk' => $b->tanggal_masuk->format('d/m/Y'),
+                    'Produk' => $b->product->nama,
+                    'Batch' => $b->batch_code,
+                    'Qty Masuk' => $b->qty_masuk_base,
+                    'Qty Sisa' => $b->qty_sisa_base,
+                    'Catatan' => $b->bonus_note
                 ])->toArray();
                 break;
         }
@@ -244,6 +254,7 @@ class ReportPage extends Component
                 'debt_aging' => 'Aging Hutang',
                 'cashier_performance' => 'Performa Kasir',
                 'slow_moving_stock' => 'Slow Moving Stock',
+                'bonus' => 'Laporan Bonus',
             ];
 
             $folderName = $folderMap[$this->selectedReport] ?? 'Lainnya';
@@ -337,6 +348,8 @@ class ReportPage extends Component
                 return $this->currentReportData = $service->getFIFOComplianceReport()
                     ->map(fn($item) => (array) $item)
                     ->toArray();
+            case 'bonus':
+                return $this->currentReportData = $service->getBonusReport($this->startDate, $this->endDate);
             default:
                 return $this->currentReportData = [];
         }

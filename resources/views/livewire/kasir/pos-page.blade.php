@@ -199,15 +199,24 @@
             @else
             @foreach($currentSale->items as $item)
             @php
-            $available = $item->product->total_stock ?? 0;
-            $isStockInsufficient = $item->qty_base > $available;
+            $availBase = $item->is_bonus_item
+            ? $this->getAvailableBonusStock($item->product_id)
+            : ($item->product->total_stock ?? 0);
+            $isStockInsufficient = $item->qty_base > $availBase;
             @endphp
             <div
                 wire:key="cart-item-{{ $item->id }}"
-                class="p-3 rounded-2xl border transition-all group {{ $isStockInsufficient ? 'bg-destructive/10 border-destructive/50 ring-2 ring-destructive/20' : 'bg-muted/10 border-border/50 hover:border-primary/30' }}">
+                class="p-4 rounded-3xl border-2 transition-all group {{ $isStockInsufficient ? 'bg-destructive/15 border-destructive ring-4 ring-destructive/10' : 'bg-card border-border/50 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5' }}">
                 <div class="flex justify-between items-start mb-2">
                     <div>
-                        <h4 class="font-bold text-sm">{{ $item->product->nama }}</h4>
+                        <div class="flex items-center gap-2 mt-1">
+                            <h4 class="font-bold text-sm {{ $item->is_bonus_item ? ($isStockInsufficient ? 'text-destructive line-through' : 'text-blue-700/50 line-through') : ($isStockInsufficient ? 'text-destructive' : 'text-foreground') }}">{{ $item->product->nama }}</h4>
+                            @if($item->is_bonus_item)
+                            <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[8px] font-black {{ $isStockInsufficient ? 'bg-destructive/20 text-destructive border-destructive/30' : 'bg-blue-500/10 text-blue-600 border-blue-500/20' }} border uppercase tracking-tighter">
+                                Bonus
+                            </span>
+                            @endif
+                        </div>
                         <div class="flex items-center gap-2 mt-1">
                             <select
                                 wire:change="changeUnit({{ $item->id }}, $event.target.value)"
@@ -222,20 +231,36 @@
                                 </option>
                                 @endforeach
                             </select>
-                            <span class="text-[10px] text-muted-foreground">@ Rp {{ number_format($item->harga_jual_per_unit * $item->unit_multiplier, 0, ',', '.') }}</span>
+                            <span class="text-[10px] text-muted-foreground">@ Rp {{ number_format($item->harga_jual_per_unit, 0, ',', '.') }}</span>
                         </div>
                     </div>
-                    <button wire:click="removeItem({{ $item->id }})" class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                        <x-lucide-trash-2 class="h-4 w-4" />
-                    </button>
+                    <div class="flex flex-col gap-1 items-end">
+                        <button wire:click="removeItem({{ $item->id }})" class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                            <x-lucide-trash-2 class="h-4 w-4" />
+                        </button>
+
+                        {{-- Jadikan Bonus Button --}}
+                        @if($item->product->bonus_stock > 0 || $item->is_bonus_item)
+                        <button
+                            wire:click="toggleBonus({{ $item->id }})"
+                            title="{{ $item->is_bonus_item ? 'Klik untuk jadikan penjualan reguler' : 'Klik untuk ambil dari stok bonus (Gratis)' }}"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 {{ $item->is_bonus_item ? 'bg-muted border-border text-muted-foreground hover:bg-muted/80' : 'border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100 shadow-sm shadow-blue-500/10' }} transition-all opacity-0 group-hover:opacity-100">
+                            @if($item->is_bonus_item)
+                            <x-lucide-x class="h-4 w-4" />
+                            <span class="text-xs font-bold uppercase tracking-tight">Batal</span>
+                            @else
+                            <span class="text-base">🎁</span>
+                            <span class="text-xs font-bold uppercase tracking-tight">Bonus</span>
+                            @endif
+                        </button>
+                        @endif
+                    </div>
                 </div>
 
                 <div class="flex justify-between items-center">
                     @php
                     $visualQty = $item->qty_base / $item->unit_multiplier;
-                    // Get latest stock for this product (eager loaded via loadCurrentSale)
-                    $totalBaseStock = $item->product->total_stock ?? 0;
-                    $remainingInUnit = $totalBaseStock / $item->unit_multiplier;
+                    $remainingInUnit = $availBase / $item->unit_multiplier;
                     @endphp
                     <div class="flex flex-col gap-1">
                         <div class="flex items-center bg-white dark:bg-muted/30 rounded-lg border border-border shadow-sm overflow-hidden h-9">
@@ -243,23 +268,33 @@
                                 <x-lucide-minus class="h-3.5 w-3.5" />
                             </button>
                             <input
-                                type="number"
+                                type="text"
+                                inputmode="numeric"
+                                pattern="[0-9]*"
                                 wire:key="qty-input-{{ $item->id }}-{{ $visualQty }}"
                                 value="{{ $visualQty }}"
-                                step="1"
+                                onfocus="this.select()"
                                 onkeypress="return event.charCode >= 48 && event.charCode <= 57"
-                                class="w-14 text-center text-sm font-bold bg-transparent border-none p-0 focus:ring-0"
+                                class="w-14 text-center text-sm font-black bg-transparent border-none p-0 focus:ring-0 {{ $isStockInsufficient ? 'text-destructive' : 'text-foreground' }}"
                                 wire:change="updateQty( {{ $item->id }}, $event.target.value)">
                             <button wire:click="adjustQty({{ $item->id }}, 1)" class="w-9 flex items-center justify-center hover:bg-muted transition-colors border-l border-border">
                                 <x-lucide-plus class="h-3.5 w-3.5" />
                             </button>
                         </div>
                         <span class="text-[9px] font-bold {{ $isStockInsufficient ? 'text-destructive animate-pulse' : 'text-muted-foreground' }} px-1 uppercase tracking-tighter">
-                            Sisa: {{ number_format($remainingInUnit, 1, ',', '.') }} {{ $item->unit_label }}
+                            {{ $item->is_bonus_item ? 'Sisa Bonus' : 'Sisa' }}: {{ number_format($remainingInUnit, 1, ',', '.') }} {{ $item->unit_label }}
                         </span>
                     </div>
                     <div class="text-right">
+                        @if($item->is_bonus_item)
+                        <div class="text-[10px] line-through text-muted-foreground font-bold">Rp {{ number_format($item->product->harga_jual_default * ($item->unit_multiplier ?: 1), 0, ',', '.') }}</div>
+                        <div class="flex items-center justify-end gap-1.5 {{ $isStockInsufficient ? 'text-destructive' : 'text-blue-600' }} font-bold">
+                            <span class="text-xs">🎁 Item Bonus</span>
+                            <span class="text-sm">Rp 0</span>
+                        </div>
+                        @else
                         <div class="text-sm font-black text-primary">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -268,15 +303,31 @@
         </div>
 
         <!-- Cart Footer (Sticky) -->
-        <div class="p-6 border-t border-border bg-muted/30">
-            <div class="flex justify-between items-center mb-1">
-                <span class="text-sm font-semibold">Total</span>
-                <span class="text-xl font-black text-primary">Rp {{ number_format($currentSale?->total ?? 0, 0, ',', '.') }}</span>
+        <div class="p-6 border-t border-border bg-muted/30 space-y-3">
+            <div class="flex justify-between items-center text-sm font-medium text-muted-foreground">
+                <span>Subtotal</span>
+                <span>Rp {{ number_format($this->subtotal, 0, ',', '.') }}</span>
             </div>
+
+            @if($this->bonusCount > 0)
+            <div class="flex justify-between items-center text-sm font-medium text-blue-600">
+                <span>Item Bonus ({{ $this->bonusCount }} unit)</span>
+                <span>- Rp {{ number_format($this->bonusDiscount, 0, ',', '.') }}</span>
+            </div>
+            @endif
+
+            <div class="border-t border-border/50 pt-2">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-base font-bold">TOTAL</span>
+                    <span class="text-2xl font-black text-primary">Rp {{ number_format($currentSale?->total ?? 0, 0, ',', '.') }}</span>
+                </div>
+                <p class="text-[10px] text-muted-foreground italic text-right">(Item bonus tidak mengurangi total bayar)</p>
+            </div>
+
             <div class="flex justify-between items-center text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                <span>{{ $currentSale?->items->count() ?? 0 }} Item</span>
+                <span>{{ $currentSale?->items->count() ?? 0 }} Baris Item</span>
                 <span>•</span>
-                <span>{{ $currentSale?->items->sum('qty_base') ?? 0 }} Unit</span>
+                <span>{{ $currentSale?->items->sum('qty_base') ?? 0 }} Total Unit</span>
             </div>
         </div>
     </div>
@@ -327,13 +378,35 @@
                         <div class="space-y-2 max-h-[250px] overflow-y-auto pr-2">
                             @foreach($currentSale?->items ?? [] as $item)
                             <div class="flex justify-between text-sm">
-                                <span class="text-muted-foreground">{{ $item->product->nama }} <span class="font-bold text-foreground mx-1">x{{ $item->qty_base }}</span></span>
-                                <span class="font-bold font-mono">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</span>
+                                <div class="flex flex-col">
+                                    <span class="text-muted-foreground {{ $item->is_bonus_item ? 'line-through opacity-50' : '' }}">
+                                        {{ $item->product->nama }} <span class="font-bold text-foreground mx-1">x{{ $item->qty_base / $item->unit_multiplier }} {{ $item->unit_label }}</span>
+                                    </span>
+                                    @if($item->is_bonus_item)
+                                    <span class="text-[10px] text-blue-600 font-bold">🎁 Item Bonus — Rp 0</span>
+                                    @endif
+                                </div>
+                                <span class="font-bold font-mono {{ $item->is_bonus_item ? 'text-blue-600' : '' }}">
+                                    {{ $item->is_bonus_item ? 'Rp 0' : 'Rp ' . number_format($item->subtotal, 0, ',', '.') }}
+                                </span>
                             </div>
                             @endforeach
                         </div>
 
-                        <div class="pt-6 border-t border-border flex justify-between items-center">
+                        <div class="pt-4 border-t border-border space-y-2">
+                            <div class="flex justify-between text-sm font-medium text-muted-foreground italic">
+                                <span>Subtotal</span>
+                                <span>Rp {{ number_format($this->subtotal, 0, ',', '.') }}</span>
+                            </div>
+                            @if($this->bonusCount > 0)
+                            <div class="flex justify-between text-sm font-medium text-blue-600">
+                                <span>Item Bonus ({{ $this->bonusCount }} unit)</span>
+                                <span>- Rp {{ number_format($this->bonusDiscount, 0, ',', '.') }}</span>
+                            </div>
+                            @endif
+                        </div>
+
+                        <div class="pt-4 border-t border-border flex justify-between items-center">
                             <span class="text-lg font-bold">Total Pembayaran</span>
                             <span class="text-2xl font-black text-primary">Rp {{ number_format($currentSale?->total ?? 0, 0, ',', '.') }}</span>
                         </div>
@@ -778,10 +851,17 @@
             @foreach($successItems as $item)
             @if(is_array($item))
             <div>
-                <div class="font-bold text-[16px]">{{ $item['nama'] ?? '' }}</div>
+                <div class="font-bold text-[16px] {{ ($item['is_bonus_item'] ?? false) ? 'line-through opacity-50' : '' }}">
+                    {{ $item['nama'] ?? '' }}
+                </div>
                 <div class="flex justify-between text-[14px]">
+                    @if($item['is_bonus_item'] ?? false)
+                    <span>{{ number_format($item['qty'] ?? 0, 0) }} {{ $item['unit'] ?? '' }} (Bonus)</span>
+                    <span>0</span>
+                    @else
                     <span>{{ number_format($item['qty'] ?? 0, 0) }} {{ $item['unit'] ?? '' }} x {{ number_format($item['harga'] ?? 0, 0, ',', '.') }}</span>
                     <span>{{ number_format($item['subtotal'] ?? 0, 0, ',', '.') }}</span>
+                    @endif
                 </div>
             </div>
             @endif
@@ -791,7 +871,21 @@
         <div class="border-b border-dashed border-black mb-2"></div>
 
         <div class="space-y-1 text-[16px]">
-            <div class="flex justify-between font-black">
+            <div class="flex justify-between">
+                <span>SUBTOTAL</span>
+                <span>{{ number_format($successTotal, 0, ',', '.') }}</span>
+            </div>
+            @php
+            $successBonusDiscount = collect($successItems)->where('is_bonus_item', true)->sum(fn($i) => $i['regular_price'] * $i['qty']);
+            $successBonusCount = collect($successItems)->where('is_bonus_item', true)->sum('qty');
+            @endphp
+            @if($successBonusCount > 0)
+            <div class="flex justify-between text-[14px] italic">
+                <span>ITEM BONUS ({{ $successBonusCount }})</span>
+                <span>-{{ number_format($successBonusDiscount, 0, ',', '.') }}</span>
+            </div>
+            @endif
+            <div class="flex justify-between font-black text-[18px] border-t border-black pt-1">
                 <span>TOTAL</span>
                 <span>Rp {{ number_format($successTotal, 0, ',', '.') }}</span>
             </div>

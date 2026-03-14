@@ -81,7 +81,11 @@ class PosPage extends Component
             $this->currentSale = Sale::where('id', $sale->id)
                 ->with(['items' => function($q) {
                     $q->with(['product' => function($pq) {
-                        $pq->with(['units'])->withSum('batches as total_stock', 'qty_sisa_base');
+                    $pq->with(['units'])
+                        ->withSum('batches as total_stock', 'qty_sisa_base')
+                        ->withSum(['batches as bonus_stock' => function ($bq) {
+                            $bq->where('is_bonus', true);
+                        }], 'qty_sisa_base');
                     }]);
                 }])
                 ->first();
@@ -95,6 +99,37 @@ class PosPage extends Component
         // Ensure total_stock SUM attribute is re-loaded on every request
         // Standard hydration loses attributes added via withSum()
         $this->loadCurrentSale();
+    }
+
+    // --- Computed Properties for UI Summary ---
+    public function getSubtotalProperty()
+    {
+        if (!$this->currentSale || !$this->currentSale->items) return 0;
+        return $this->currentSale->items->where('is_bonus_item', false)->sum('subtotal');
+    }
+
+    public function getBonusDiscountProperty()
+    {
+        if (!$this->currentSale || !$this->currentSale->items) return 0;
+        $bonusItems = $this->currentSale->items->where('is_bonus_item', true);
+
+        $discount = 0;
+        foreach ($bonusItems as $item) {
+            $discount += (int)($item->qty_base * $item->product->harga_jual_default);
+        }
+        return $discount;
+    }
+
+    public function getBonusCountProperty()
+    {
+        if (!$this->currentSale || !$this->currentSale->items) return 0;
+        return (int)$this->currentSale->items->where('is_bonus_item', true)->sum('qty_base');
+    }
+
+    public function getAvailableBonusStock($productId)
+    {
+        if (!$this->currentSale) return 0;
+        return app(\App\Services\SaleService::class)->getAvailableBonusStock($productId, $this->currentSale->id);
     }
 
     // --- Search Logic ---
@@ -215,6 +250,19 @@ class PosPage extends Component
         $this->loadCurrentSale();
     }
 
+    public function toggleBonus($itemId)
+    {
+        $item = SaleItem::find($itemId);
+        if (!$item) return;
+
+        try {
+            app(\App\Services\SaleService::class)->toggleBonusItem($item);
+            $this->loadCurrentSale();
+        } catch (\Exception $e) {
+            $this->dispatch('notify', message: $e->getMessage(), type: 'error');
+        }
+    }
+
     public function cancelTransaction()
     {
         if (!$this->currentSale) return;
@@ -292,9 +340,13 @@ class PosPage extends Component
         
         // UI-Level Guard for Stock
         foreach($this->currentSale->items as $item) {
-            $available = $item->product->total_stock ?? 0;
-            if ($item->qty_base > $available) {
-                $this->dispatch('notify', message: "Stok {$item->product->nama} tidak mencukupi untuk pembayaran.", type: 'error');
+            $avail = $item->is_bonus_item
+                ? $this->getAvailableBonusStock($item->product_id)
+                : ($item->product->total_stock ?? 0);
+
+            if ($item->qty_base > $avail) {
+                $type = $item->is_bonus_item ? 'Stok bonus' : 'Stok';
+                $this->dispatch('notify', message: "{$type} {$item->product->nama} tidak mencukupi ({$avail} tersedia).", type: 'error');
                 return;
             }
         }
@@ -348,8 +400,10 @@ class PosPage extends Component
                 'nama' => $item->product->nama,
                 'qty' => $item->qty_base / $item->unit_multiplier,
                 'unit' => $item->unit_label,
-                'harga' => $item->harga_jual_per_unit * $item->unit_multiplier,
-                'subtotal' => $item->subtotal
+                'harga' => $item->harga_jual_per_unit,
+                'subtotal' => $item->subtotal,
+                'is_bonus_item' => $item->is_bonus_item,
+                'regular_price' => $item->product->harga_jual_default * $item->unit_multiplier,
             ];
         })->toArray();
         

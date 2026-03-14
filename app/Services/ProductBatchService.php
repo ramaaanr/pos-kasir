@@ -38,13 +38,19 @@ class ProductBatchService
             // Generate Batch Code
             $batch_code = $this->generateBatchCode();
 
+            $isBonus = $data['is_bonus'] ?? false;
+            $bonusNote = $data['bonus_note'] ?? null;
+            $hargaBeli = $isBonus ? 0 : (int)round($data['harga_beli_per_base'] / $multiplier);
+
             $batch = ProductBatch::create([
                 'product_id' => $product->id,
+                'is_bonus' => $isBonus,
+                'bonus_note' => $bonusNote,
                 'input_unit_name' => $unitName,
                 'qty_masuk_original' => $qty_input,
                 'batch_code' => $batch_code,
-                'harga_beli_per_unit' => $data['harga_beli_per_base'],
-                'harga_jual_per_unit' => $data['harga_jual_per_base'],
+                'harga_beli_per_unit' => $hargaBeli,
+                'harga_jual_per_unit' => $data['harga_jual_per_base'], // still per input unit for now, logic handled in SaleService
                 'qty_masuk_base' => $qty_masuk_base,
                 'qty_sisa_base' => $qty_masuk_base,
                 'tanggal_masuk' => $data['tanggal_masuk'] ?? now(),
@@ -54,11 +60,11 @@ class ProductBatchService
             \App\Models\ProductBatchLog::create([
                 'product_batch_id' => $batch->id,
                 'user_id' => auth()->id(),
-                'action' => 'created',
+                'action' => $isBonus ? 'created_bonus' : 'created',
                 'qty_change' => $qty_masuk_base,
                 'qty_before' => 0,
                 'qty_after' => $qty_masuk_base,
-                'description' => 'Batch created via Stok Masuk form',
+                'description' => $isBonus ? "Batch bonus created: {$bonusNote}" : 'Batch created via Stok Masuk form',
             ]);
 
             return $batch;
@@ -97,14 +103,20 @@ class ProductBatchService
             $oldData = [
                 'harga_beli' => (float)$batch->harga_beli_per_unit,
                 'harga_jual' => (float)$batch->harga_jual_per_unit,
-                'tanggal_masuk' => $batch->tanggal_masuk->format('Y-m-d'),
+                'tanggal_masuk' => \Carbon\Carbon::parse($batch->tanggal_masuk)->format('Y-m-d'),
             ];
+
+            $isBonus = $data['is_bonus'] ?? $batch->is_bonus;
+            $bonusNote = $data['bonus_note'] ?? $batch->bonus_note;
+            $hargaBeli = $isBonus ? 0 : (int)round($data['harga_beli_per_base'] / $multiplier);
 
             $updateData = [
                 'product_id' => $product->id,
+                'is_bonus' => $isBonus,
+                'bonus_note' => $bonusNote,
                 'input_unit_name' => $unitName,
                 'qty_masuk_original' => $qty_input,
-                'harga_beli_per_unit' => $data['harga_beli_per_base'],
+                'harga_beli_per_unit' => $hargaBeli,
                 'harga_jual_per_unit' => $data['harga_jual_per_base'],
                 'tanggal_masuk' => $data['tanggal_masuk'],
             ];
