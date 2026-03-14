@@ -32,7 +32,7 @@ class ProductList extends Component
 
     // Form Data
     public $nama = '';
-    public $selectedCategory = '';
+    public $category_name = '';
     public $kode_produk = '';
     public $harga_beli = 0;
     public $margin = 0;
@@ -106,9 +106,9 @@ class ProductList extends Component
         if ($id) {
             $this->isEdit = true;
             $this->selectedProductId = $id;
-            $product = Product::findOrFail($id);
+            $product = Product::with('category')->findOrFail($id);
             $this->nama = $product->nama;
-            $this->selectedCategory = $product->category_id;
+            $this->category_name = $product->category->name ?? '';
             $this->kode_produk = $product->kode_produk;
             $this->harga_beli = $product->harga_beli_default;
             $this->harga_jual = $product->harga_jual_default;
@@ -119,7 +119,7 @@ class ProductList extends Component
         } else {
             $this->isEdit = false;
             $this->selectedProductId = null;
-            $this->reset(['nama', 'selectedCategory', 'kode_produk', 'harga_beli', 'margin', 'harga_jual', 'base_unit', 'is_active', 'units']);
+            $this->reset(['nama', 'category_name', 'kode_produk', 'harga_beli', 'margin', 'harga_jual', 'base_unit', 'is_active', 'units']);
             $this->base_unit = 'Pcs';
             $this->is_active = true;
             $this->units = [];
@@ -136,7 +136,7 @@ class ProductList extends Component
     {
         $this->validate([
             'nama' => 'required|min:3',
-            'selectedCategory' => 'required',
+            'category_name' => 'required|min:2',
             'kode_produk' => 'required',
             'harga_beli' => 'required|numeric|min:0',
             'harga_jual' => 'required|numeric|min:0',
@@ -144,9 +144,30 @@ class ProductList extends Component
         ]);
 
         try {
+            // Find or Create Category
+            $category = ProductCategory::where('name', 'like', trim($this->category_name))->first();
+
+            if ($category) {
+                if (!$this->isEdit || ($this->selectedProductId && Product::find($this->selectedProductId)->category_id !== $category->id)) {
+                    $this->dispatch('toast', ['type' => 'info', 'message' => "Menggunakan kategori existing: {$category->name}"]);
+                }
+            } else {
+                $category = ProductCategory::create([
+                    'name' => trim($this->category_name),
+                    'is_active' => true
+                ]);
+                $this->dispatch('toast', ['type' => 'success', 'message' => "Kategori baru '{$category->name}' berhasil dibuat"]);
+
+                \App\Models\ProductCategoryLog::create([
+                    'category_id' => $category->id,
+                    'action' => 'create',
+                    'new_value' => $category->name,
+                ]);
+            }
+
             $data = [
                 'nama' => $this->nama,
-                'category_id' => $this->selectedCategory,
+                'category_id' => $category->id,
                 'kode_produk' => $this->kode_produk,
                 'base_unit' => $this->base_unit,
                 'harga_beli_default' => $this->harga_beli,

@@ -71,7 +71,8 @@
                             </button>
                         </th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground">Batch Code</th>
-                        <th class="px-4 py-3 font-semibold text-muted-foreground">Produk</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground w-[120px]">Produk</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground">Unit Masuk</th>
                         <th class="px-6 py-3 font-semibold text-muted-foreground text-right">Harga Beli</th>
                         <th class="px-6 py-3 font-semibold text-muted-foreground text-right">Harga Jual</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground text-center">Stok (Sisa/Masuk)</th>
@@ -94,6 +95,11 @@
                         </td>
                         <td class="px-4 py-4 font-medium text-foreground">
                             {{ $batch->product->nama }}
+                        </td>
+                        <td class="px-4 py-4">
+                            <span class="inline-flex items-center px-2 py-1 rounded-md bg-muted text-xs font-semibold text-muted-foreground">
+                                {{ (float)$batch->qty_masuk_original ?? '1' }} {{ $batch->input_unit_name ?? $batch->product->base_unit }}
+                            </span>
                         </td>
                         <td class="px-6 py-4 text-right">
                             Rp {{ number_format($batch->harga_beli_per_unit, 0, ',', '.') }}
@@ -259,7 +265,7 @@
                                 x-show="searchOpen && $wire.productSearch.length >= 3"
                                 class="absolute z-[110] mt-1 w-full bg-card border border-border rounded-lg shadow-xl py-1"
                                 style="display: none;">
-                                
+
                                 {{-- Loading State / Skeleton --}}
                                 <div wire:loading wire:target="productSearch" class="w-full">
                                     <div class="flex flex-col items-center justify-center py-12 px-4 gap-4">
@@ -273,7 +279,7 @@
                                             <span class="text-sm font-black text-foreground uppercase tracking-widest block">Mencari Produk...</span>
                                             <p class="text-[10px] text-muted-foreground italic">Menghubungkan ke database</p>
                                         </div>
-                                        
+
                                         {{-- Mini Skeleton --}}
                                         <div class="w-full max-w-[250px] space-y-2 mt-2">
                                             <div class="h-8 w-full bg-muted/50 rounded-lg animate-pulse"></div>
@@ -304,7 +310,7 @@
                                         </div>
                                         <span class="font-bold">Wah, produk tidak ditemukan</span>
                                         <p class="text-[10px] text-muted-foreground max-w-[180px] mx-auto">Cek kembali kata kunci atau barcode Anda.</p>
-                                        <button 
+                                        <button
                                             type="button"
                                             wire:click="openQuickProductModal"
                                             class="mx-auto mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all font-bold shadow-lg shadow-primary/20">
@@ -314,7 +320,7 @@
                                     </div>
                                     @endforelse
                                     <div class="border-t border-border mt-1 pt-1 bg-muted/20">
-                                        <button 
+                                        <button
                                             type="button"
                                             wire:click="openQuickProductModal"
                                             class="flex w-full items-center gap-2 px-3 py-2 text-[10px] font-bold text-primary hover:bg-muted transition-colors uppercase tracking-tight">
@@ -505,6 +511,10 @@
                         <div class="flex justify-between items-center py-2 border-b border-border/50">
                             <span class="text-sm text-muted-foreground">Harga Jual / Unit</span>
                             <span class="text-sm font-bold text-primary">Rp {{ number_format($batchDetail->harga_jual_per_unit, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-border/50">
+                            <span class="text-sm text-muted-foreground">Input Unit Masuk</span>
+                            <span class="text-sm font-semibold bg-muted px-2 py-0.5 rounded">{{ (float)$batchDetail->qty_masuk_original }} {{ $batchDetail->input_unit_name }}</span>
                         </div>
                         <div class="flex justify-between items-center py-2 border-b border-border/50">
                             <span class="text-sm text-muted-foreground">Total Stok Masuk</span>
@@ -758,13 +768,18 @@
 
                         <div class="space-y-2">
                             <label class="text-sm font-semibold text-foreground">Kategori Produk <span class="text-destructive">*</span></label>
-                            <select wire:model="quick_selectedCategory" class="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
-                                <option value="">-- Pilih Kategori --</option>
+                            <input
+                                type="text"
+                                wire:model="quick_category_name"
+                                list="quick-category-list"
+                                placeholder="Cari atau ketik kategori baru"
+                                class="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
+                            <datalist id="quick-category-list">
                                 @foreach($categories as $category)
-                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                @endforeach
-                            </select>
-                            @error('quick_selectedCategory') <span class="text-xs text-destructive font-medium">{{ $message }}</span> @enderror
+                                <option value="{{ $category->name }}">
+                                    @endforeach
+                            </datalist>
+                            @error('quick_category_name') <span class="text-xs text-destructive font-medium">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="space-y-2">

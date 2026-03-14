@@ -23,11 +23,15 @@ class AdminAccessModal extends Component
     public function checkPassword()
     {
         if ($this->password === 'KasirPos2026') {
+            session(['admin_authenticated' => true]);
+
+            // Auto-login an admin user if available, to keep Filament/other components happy
             $admin = User::where('email', 'admin@pos.com')->first();
             if ($admin) {
                 Auth::login($admin);
-                return redirect()->to('/admin');
             }
+
+            return redirect()->to('/dashboard');
         }
 
         $this->addError('password', 'Password salah!');

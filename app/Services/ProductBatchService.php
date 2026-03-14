@@ -19,9 +19,11 @@ class ProductBatchService
             
             // Resolve multiplier from unit selection (or 1 if base)
             $multiplier = 1;
+            $unitName = $product->base_unit;
             if (isset($data['unit_id']) && $data['unit_id']) {
                 $unit = ProductUnit::where('product_id', $product->id)->findOrFail($data['unit_id']);
                 $multiplier = $unit->multiplier;
+                $unitName = $unit->label;
             }
 
             // Convert qty to base unit (Hard Constraint: Integer only)
@@ -38,6 +40,8 @@ class ProductBatchService
 
             $batch = ProductBatch::create([
                 'product_id' => $product->id,
+                'input_unit_name' => $unitName,
+                'qty_masuk_original' => $qty_input,
                 'batch_code' => $batch_code,
                 'harga_beli_per_unit' => $data['harga_beli_per_base'],
                 'harga_jual_per_unit' => $data['harga_jual_per_base'],
@@ -73,9 +77,11 @@ class ProductBatchService
 
             $multiplier = 1;
             $product = Product::findOrFail($data['product_id']);
+            $unitName = $product->base_unit;
             if (isset($data['unit_id']) && $data['unit_id']) {
                 $unit = ProductUnit::where('product_id', $product->id)->findOrFail($data['unit_id']);
                 $multiplier = $unit->multiplier;
+                $unitName = $unit->label;
             }
 
             $qty_input = $data['qty_input'];
@@ -96,6 +102,8 @@ class ProductBatchService
 
             $updateData = [
                 'product_id' => $product->id,
+                'input_unit_name' => $unitName,
+                'qty_masuk_original' => $qty_input,
                 'harga_beli_per_unit' => $data['harga_beli_per_base'],
                 'harga_jual_per_unit' => $data['harga_jual_per_base'],
                 'tanggal_masuk' => $data['tanggal_masuk'],

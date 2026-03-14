@@ -13,6 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
+        'admin.session' => \App\Http\Middleware\AdminSessionGuard::class,
+        'kasir.auto_login' => \App\Http\Middleware\AutoLoginKasir::class,
         ]);
 
         $middleware->redirectTo('/login');

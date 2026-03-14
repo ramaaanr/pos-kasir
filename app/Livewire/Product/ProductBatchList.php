@@ -52,7 +52,7 @@ class ProductBatchList extends Component
     // Quick Product Modal State
     public $showQuickProductModal = false;
     public $quick_nama = '';
-    public $quick_selectedCategory = '';
+    public $quick_category_name = '';
     public $quick_kode_produk = '';
     public $quick_harga_beli = 0;
     public $quick_margin = 0;
@@ -92,11 +92,19 @@ class ProductBatchList extends Component
             $this->harga_beli = $batch->harga_beli_per_unit;
             $this->harga_jual = $batch->harga_jual_per_unit;
             $this->margin = $this->harga_jual - $this->harga_beli;
-            
-            $this->qty_masuk = $batch->qty_masuk_base;
+
+            $this->qty_masuk = (float)($batch->qty_masuk_original ?? $batch->qty_masuk_base);
             $this->tanggal_masuk = $batch->tanggal_masuk->format('Y-m-d');
-            $this->unit_id = ''; // Reset to base unit to avoid double multiplication from previous state
             $this->availableUnits = $batch->product->units;
+
+            // Try to match unit_id from input_unit_name
+            $this->unit_id = '';
+            if ($batch->input_unit_name && $batch->input_unit_name !== $batch->product->base_unit) {
+                $matchedUnit = $this->availableUnits->where('label', $batch->input_unit_name)->first();
+                if ($matchedUnit) {
+                    $this->unit_id = $matchedUnit->id;
+                }
+            }
         } else {
             $this->isEdit = false;
             $this->selectedBatchId = null;
@@ -248,7 +256,7 @@ class ProductBatchList extends Component
     // --- Quick Product Methods ---
     public function openQuickProductModal()
     {
-        $this->reset(['quick_nama', 'quick_selectedCategory', 'quick_kode_produk', 'quick_harga_beli', 'quick_margin', 'quick_harga_jual', 'quick_base_unit', 'quick_units']);
+        $this->reset(['quick_nama', 'quick_category_name', 'quick_kode_produk', 'quick_harga_beli', 'quick_margin', 'quick_harga_jual', 'quick_base_unit', 'quick_units']);
         $this->quick_base_unit = 'Pcs';
         // Auto-fill barcode if something was searched
         if ($this->productSearch && strlen($this->productSearch) > 3 && !is_numeric($this->productSearch) === false) {
@@ -298,7 +306,7 @@ class ProductBatchList extends Component
     {
         $this->validate([
             'quick_nama' => 'required|min:3',
-            'quick_selectedCategory' => 'required',
+            'quick_category_name' => 'required|min:2',
             'quick_kode_produk' => 'required',
             'quick_harga_beli' => 'required|numeric|min:0',
             'quick_harga_jual' => 'required|numeric|min:0',
@@ -306,9 +314,28 @@ class ProductBatchList extends Component
         ]);
 
         try {
+            // Find or Create Category
+            $category = ProductCategory::where('name', 'like', trim($this->quick_category_name))->first();
+
+            if ($category) {
+                $this->dispatch('toast', ['type' => 'info', 'message' => "Menggunakan kategori existing: {$category->name}"]);
+            } else {
+                $category = ProductCategory::create([
+                    'name' => trim($this->quick_category_name),
+                    'is_active' => true
+                ]);
+                $this->dispatch('toast', ['type' => 'success', 'message' => "Kategori baru '{$category->name}' berhasil dibuat"]);
+
+                \App\Models\ProductCategoryLog::create([
+                    'category_id' => $category->id,
+                    'action' => 'create',
+                    'new_value' => $category->name,
+                ]);
+            }
+
             $data = [
                 'nama' => $this->quick_nama,
-                'category_id' => $this->quick_selectedCategory,
+                'category_id' => $category->id,
                 'kode_produk' => $this->quick_kode_produk,
                 'harga_beli_default' => $this->quick_harga_beli,
                 'harga_jual_default' => $this->quick_harga_jual,

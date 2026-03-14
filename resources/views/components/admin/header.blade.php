@@ -3,7 +3,7 @@
 <header class="sticky top-0 z-40 w-full glass border-b border-border/40 transition-all duration-300">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between gap-4">
-            
+
             {{-- Left Side: Logo + Title --}}
             <div class="flex items-center gap-4">
                 @if(!request()->routeIs('dashboard'))
@@ -11,7 +11,7 @@
                     <x-lucide-arrow-left class="w-5 h-5" />
                 </a>
                 @endif
-                
+
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl gradient-admin flex items-center justify-center shadow-lg shadow-primary/20">
                         <x-lucide-shield class="w-6 h-6 text-white" />
@@ -28,44 +28,48 @@
             {{-- Center: Navigation Menu --}}
             <nav class="hidden md:flex items-center gap-1">
                 @if(auth()->user()->hasRole('admin'))
-                    <a href="{{ route('products.index') }}" 
-                       class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('products.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
-                        <x-lucide-package class="w-4 h-4 inline-block mr-1" />
-                        Produk
-                    </a>
-                    <a href="{{ route('product-categories.index') }}" 
-                       class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('product-categories.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
-                        <x-lucide-layout-grid class="w-4 h-4 inline-block mr-1" />
-                        Kategori
-                    </a>
-                    <a href="{{ route('stok-masuk.index') }}" 
-                       class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('stok-masuk.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
-                        <x-lucide-truck class="w-4 h-4 inline-block mr-1" />
-                        Stok Masuk
-                    </a>
-                    <a href="{{ route('admin.stock-adjustments.index') }}" 
-                       class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.stock-adjustments.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
-                        <x-lucide-clipboard-edit class="w-4 h-4 inline-block mr-1" />
-                        Stock Adjustment
-                    </a>
+                <a href="{{ route('product-categories.index') }}"
+                    class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('product-categories.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                    <x-lucide-layout-grid class="w-4 h-4 inline-block mr-1" />
+                    Kategori
+                </a>
+                <a href="{{ route('products.index') }}"
+                    class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('products.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                    <x-lucide-package class="w-4 h-4 inline-block mr-1" />
+                    Produk
+                </a>
+                <a href="{{ route('stok-masuk.index') }}"
+                    class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('stok-masuk.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                    <x-lucide-truck class="w-4 h-4 inline-block mr-1" />
+                    Stok Masuk
+                </a>
+
+                {{-- Vertical Separator --}}
+                <div class="h-6 w-px bg-border/60 mx-2"></div>
+
+                <a href="{{ route('admin.stock-adjustments.index') }}"
+                    class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.stock-adjustments.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                    <x-lucide-clipboard-edit class="w-4 h-4 inline-block mr-1" />
+                    Stock Adjustment
+                </a>
                 @endif
 
                 @if(auth()->user()->hasRole('owner'))
-                    <a href="{{ route('admin.users.index') }}" 
-                       class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.users.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
-                        <x-lucide-users class="w-4 h-4 inline-block mr-1" />
-                        Manajemen User
-                    </a>
+                <a href="{{ route('admin.users.index') }}"
+                    class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.users.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                    <x-lucide-users class="w-4 h-4 inline-block mr-1" />
+                    Manajemen User
+                </a>
                 @endif
 
-                <a href="{{ route('admin.reports.index') }}" 
-                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.reports.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                <a href="{{ route('admin.reports.index') }}"
+                    class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.reports.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
                     <x-lucide-bar-chart-3 class="w-4 h-4 inline-block mr-1" />
                     Laporan
                 </a>
 
-                <a href="{{ route('admin.sales.index') }}" 
-                   class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.sales.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                <a href="{{ route('admin.sales.index') }}"
+                    class="px-3 py-2 text-sm font-medium rounded-lg transition-colors {{ request()->routeIs('admin.sales.*') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}">
                     <x-lucide-receipt class="w-4 h-4 inline-block mr-1" />
                     Data Penjualan
                 </a>
@@ -79,16 +83,13 @@
                         {{ strtoupper(Auth::user()->roles->first()->name ?? 'User') }}
                     </span>
                 </div>
-                
+
                 <div class="h-8 w-px bg-border/50 mx-2 hidden sm:block"></div>
-                
-                <form action="{{ route('filament.admin.auth.logout') }}" method="POST" class="inline-block">
-                    @csrf
-                    <button type="submit" class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/5 rounded-lg border border-transparent hover:border-destructive/20 transition-all duration-200">
-                        <x-lucide-log-out class="w-4 h-4" />
-                        <span class="hidden md:inline">Keluar</span>
-                    </button>
-                </form>
+
+                <a href="{{ route('admin.back-to-kasir') }}" class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-amber-600 hover:bg-amber-50 rounded-lg border border-transparent hover:border-amber-200 transition-all duration-200">
+                    <x-lucide-monitor class="w-4 h-4" />
+                    <span class="hidden md:inline">Kembali ke Kasir</span>
+                </a>
             </div>
         </div>
     </div>

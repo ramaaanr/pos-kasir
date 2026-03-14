@@ -44,8 +44,8 @@
 
             <div class="flex items-center gap-4">
                 <div class="flex flex-col items-end mr-2">
-                    <span class="text-sm font-semibold">{{ auth()->user()->name ?? 'Kasir' }}</span>
-                    <span class="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full capitalize">Kasir</span>
+                    <span class="text-sm font-semibold">{{ auth()->user()->name ?? 'Pengguna' }}</span>
+                    <span class="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full capitalize">Kasir POS</span>
                 </div>
 
                 <div class="h-8 w-px bg-border mx-1"></div>
@@ -57,12 +57,6 @@
                     <x-lucide-shield-check class="w-4 h-4" />
                     <span class="hidden md:inline">Admin Panel</span>
                 </button>
-                <form method="POST" action="{{ route('filament.admin.auth.logout') }}">
-                    @csrf
-                    <button type="submit" class="p-2 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-colors" title="Logout">
-                        <x-lucide-log-out class="h-5 w-5" />
-                    </button>
-                </form>
             </div>
         </div>
     </header>

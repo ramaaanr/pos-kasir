@@ -8,17 +8,24 @@ use App\Models\DebtPayment;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 
 #[Layout('components.layouts.kasir', ['title' => 'Dashboard'])]
 class KasirDashboard extends Component
 {
+    use WithPagination;
+
+    #[Url(as: 'q')]
+    public $stockSearch = '';
     public $openingCash = 0;
     public $cashInDrawer = 0;
     public $note = '';
     
     public $showOpeningModal = false;
     public $showClosingModal = false;
+    public $isShiftOverdue = false;
 
     public function mount()
     {
@@ -33,6 +40,9 @@ class KasirDashboard extends Component
 
         if (!$activeShift) {
             $this->showOpeningModal = true;
+        } else {
+            // Check if shift is older than 24 hours
+            $this->isShiftOverdue = $activeShift->start_time->diffInHours(now()) >= 24;
         }
     }
 
@@ -132,13 +142,19 @@ class KasirDashboard extends Component
 
         $recentTransactions = Sale::with('customer')
             ->latest()
-            ->take(10)
-            ->get();
+            ->paginate(10, pageName: 'transactions');
+
+        $stockData = \App\Models\Product::active()
+            ->search($this->stockSearch)
+            ->withSum('batches', 'qty_sisa_base')
+            ->orderBy('batches_sum_qty_sisa_base', 'asc')
+            ->paginate(10, pageName: 'stock');
 
         return view('livewire.kasir.kasir-dashboard', [
             'todayTransactionCount' => $todayTransactionCount,
             'todayTotalSales' => $todayTotalSales,
             'recentTransactions' => $recentTransactions,
+            'stockData' => $stockData,
             'activeShift' => $this->activeShift,
             'systemCash' => $this->calculateSystemCash()
         ]);
