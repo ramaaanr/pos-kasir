@@ -92,6 +92,22 @@
                     @if(!$currentSale) disabled @endif
                     placeholder="Cari produk (nama atau barcode)..."
                     class="block w-full h-14 pl-12 pr-4 text-lg border-2 border-border/50 rounded-2xl bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all disabled:opacity-50 disabled:bg-muted">
+
+                {{-- Unit Selector di Search Bar --}}
+                @if(count($activeProductUnits) > 0)
+                <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10 p-1 bg-card/80 backdrop-blur rounded-xl border border-border/50 shadow-sm">
+                    @foreach($activeProductUnits as $unit)
+                    <button
+                        wire:click="setActiveUnit({{ $unit['id'] ?? 'null' }})"
+                        class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all
+                            {{ $activeUnitId === $unit['id'] 
+                                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' 
+                                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground' }}">
+                        {{ $unit['label'] }}
+                    </button>
+                    @endforeach
+                </div>
+                @endif
             </div>
 
             <!-- Search Dropdown Results -->

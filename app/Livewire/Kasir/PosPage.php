@@ -21,7 +21,9 @@ class PosPage extends Component
     public ?Sale $currentSale = null;
     public $search = '';
     public $searchResults = [];
-    
+    public $activeUnitId = null;       // currently selected unit ID for add-to-cart (null = base)
+    public $activeProductUnits = [];   // units of the first search result
+
     // Modals State
     public $showCheckoutModal = false;
     public $showCancelModal = false;
@@ -137,6 +139,8 @@ class PosPage extends Component
     {
         if (strlen($this->search) < 2) {
             $this->searchResults = [];
+            $this->activeUnitId = null;
+            $this->activeProductUnits = [];
             return;
         }
 
@@ -146,14 +150,40 @@ class PosPage extends Component
                       ->orWhere('kode_produk', 'like', '%' . $this->search . '%');
             })
             ->withSum('batches as estimated_stock', 'qty_sisa_base')
+            ->with('units')
             ->take(8)
             ->get();
+
+        // Populate unit pills from first result
+        if ($this->searchResults->count() > 0) {
+            $first = $this->searchResults->first();
+            // Build list: base unit first, then extra units
+            $units = [['id' => null, 'label' => $first->base_unit, 'multiplier' => 1]];
+            foreach ($first->units as $u) {
+                $units[] = ['id' => $u->id, 'label' => $u->label, 'multiplier' => (int)$u->multiplier];
+            }
+            $this->activeProductUnits = $units;
+
+            // Keep existing selection if it's valid for this product
+            $validUnitIds = collect($units)->pluck('id')->toArray();
+            if (!in_array($this->activeUnitId, $validUnitIds)) {
+                $this->activeUnitId = null; // Default to base unit
+            }
+        } else {
+            $this->activeProductUnits = [];
+            $this->activeUnitId = null;
+        }
 
         // Auto-add if scanner sent Enter prematurely
         if ($this->pendingEnter && count($this->searchResults) === 1) {
             $this->addToCart($this->searchResults[0]->id);
             $this->pendingEnter = false;
         }
+    }
+
+    public function setActiveUnit(?int $unitId)
+    {
+        $this->activeUnitId = $unitId;
     }
 
     // --- Cart Management ---
@@ -177,10 +207,17 @@ class PosPage extends Component
         if (!$this->currentSale) return;
 
         try {
-            app(\App\Services\SaleService::class)->addToCart($this->currentSale, $productId);
+            app(\App\Services\SaleService::class)->addToCart(
+                $this->currentSale,
+                $productId,
+                1,
+                $this->activeUnitId  // pass the active unit ID
+            );
             
             $this->search = '';
             $this->searchResults = [];
+            $this->activeProductUnits = [];
+            $this->activeUnitId = null;
             $this->pendingEnter = false;
             $this->loadCurrentSale();
         } catch (\Exception $e) {

@@ -20,35 +20,58 @@ class SaleService
     /**
      * Add a product to a draft sale.
      */
-    public function addToCart(Sale $sale, int $productId, int $qty = 1)
+    public function addToCart(Sale $sale, int $productId, int $qty = 1, ?int $unitId = null)
     {
         if ($sale->status !== 'draft') {
             throw new Exception("Cannot modify a non-draft sale.");
         }
 
         $product = Product::findOrFail($productId);
-        
+
+        // Resolve unit details (Label, Multiplier, Price)
+        if ($unitId) {
+            $unit = ProductUnit::where('product_id', $productId)->find($unitId);
+            if (!$unit) {
+                // Fallback if unitId doesn't belong to this product or doesn't exist
+                $unitLabel = $product->base_unit;
+                $multiplier = 1;
+                $price = $product->harga_jual_default;
+            } else {
+                $unitLabel = $unit->label;
+                $multiplier = (int) $unit->multiplier;
+                $price = $unit->harga_jual
+                    ?? ($product->harga_jual_default * $multiplier);
+            }
+        } else {
+            // Base unit
+            $unitLabel = $product->base_unit;
+            $multiplier = 1;
+            $price = $product->harga_jual_default;
+        }
+
+        // Find existing item matching SAME product + SAME unit
         $item = SaleItem::where('sale_id', $sale->id)
             ->where('product_id', $productId)
-            ->where('is_bonus_item', false) // Always add to regular item row
-            ->whereNull('product_batch_id') // Correct: Draft items have null batch
+            ->where('unit_label', $unitLabel)
+            ->where('is_bonus_item', false)
+            ->whereNull('product_batch_id')
             ->first();
 
         if ($item) {
-            // Increment by $qty visual unit (based on current multiplier)
-            $increment = (int) ($qty * $item->unit_multiplier);
+            // Increment by $qty visual units
+            $increment = (int) ($qty * $multiplier); // $multiplier is base units per 1 visual unit
             $item->increment('qty_base', $increment);
-            $item->update(['subtotal' => $item->qty_base * $item->harga_jual_per_unit]);
+            $item->update(['subtotal' => ($item->qty_base / $item->unit_multiplier) * $item->harga_jual_per_unit]);
         } else {
             SaleItem::create([
-                'sale_id' => $sale->id,
-                'product_id' => $product->id,
-                'qty_base' => $qty,
-                'is_bonus_item' => false,
-                'unit_label' => $product->base_unit,
-                'unit_multiplier' => 1,
-                'harga_jual_per_unit' => $product->harga_jual_default,
-                'subtotal' => $product->harga_jual_default * $qty,
+                'sale_id'            => $sale->id,
+                'product_id'         => $product->id,
+                'qty_base'           => $qty * $multiplier,
+                'is_bonus_item'      => false,
+                'unit_label'         => $unitLabel,
+                'unit_multiplier'    => $multiplier,
+                'harga_jual_per_unit' => $price,
+                'subtotal'           => $price * $qty,
             ]);
         }
 
@@ -74,7 +97,7 @@ class SaleService
 
             $item->update([
                 'qty_base' => $qty,
-                'subtotal' => $qty * $item->harga_jual_per_unit
+                'subtotal' => ($qty / $item->unit_multiplier) * $item->harga_jual_per_unit
             ]);
         }
 
@@ -109,11 +132,11 @@ class SaleService
         // SPLIT LOGIC: If qty > 1, move only 1 unit to the opposite category
         if ($item->qty_base > 1) {
             $item->decrement('qty_base', 1);
-            $item->update(['subtotal' => $item->qty_base * $item->harga_jual_per_unit]);
+            $item->update(['subtotal' => ($item->qty_base / $item->unit_multiplier) * $item->harga_jual_per_unit]);
 
             if ($oppositeItem) {
                 $oppositeItem->increment('qty_base', 1);
-                $oppositeItem->update(['subtotal' => $oppositeItem->qty_base * $oppositeItem->harga_jual_per_unit]);
+                $oppositeItem->update(['subtotal' => ($oppositeItem->qty_base / $oppositeItem->unit_multiplier) * $oppositeItem->harga_jual_per_unit]);
             } else {
                 $newPrice = $targetIsBonus ? 0 : $item->product->harga_jual_default;
                 SaleItem::create([
@@ -124,14 +147,14 @@ class SaleService
                     'unit_label' => $item->unit_label,
                     'unit_multiplier' => $item->unit_multiplier,
                     'harga_jual_per_unit' => $newPrice,
-                    'subtotal' => $newPrice,
+                    'subtotal' => (1 / $item->unit_multiplier) * $newPrice,
                 ]);
             }
         } else {
             // MERGE/TOGGLE LOGIC: If qty == 1, merge with existing opposite or just toggle
             if ($oppositeItem) {
                 $oppositeItem->increment('qty_base', 1);
-                $oppositeItem->update(['subtotal' => $oppositeItem->qty_base * $oppositeItem->harga_jual_per_unit]);
+                $oppositeItem->update(['subtotal' => ($oppositeItem->qty_base / $oppositeItem->unit_multiplier) * $oppositeItem->harga_jual_per_unit]);
                 $item->delete();
             } else {
                 $isBonus = !$item->is_bonus_item;
@@ -147,7 +170,7 @@ class SaleService
                 $item->update([
                     'is_bonus_item' => $isBonus,
                     'harga_jual_per_unit' => $newPrice,
-                    'subtotal' => (int)($item->qty_base * $newPrice)
+                    'subtotal' => (int)(($item->qty_base / $item->unit_multiplier) * $newPrice)
                 ]);
             }
         }
