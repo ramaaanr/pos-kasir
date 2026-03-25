@@ -62,6 +62,7 @@
                     $hasStockIssue = $currentSale->items->contains(function($item) {
                     return $item->qty_base > ($item->product->total_stock ?? 0);
                     });
+                    $isCartEmpty = $currentSale->items->isEmpty();
                     @endphp
                     <button @click="showCancelModal = true" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-destructive/30 text-destructive font-bold hover:bg-destructive/10 transition-colors">
                         <x-lucide-x class="h-5 w-5" />
@@ -69,7 +70,7 @@
                     </button>
                     <button
                         wire:click="openCheckout"
-                        @if($hasStockIssue) disabled @endif
+                        @if($hasStockIssue || $isCartEmpty) disabled @endif
                         class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed">
                         <x-lucide-check-circle class="h-5 w-5" />
                         Selesaikan
@@ -211,6 +212,10 @@
                 </div>
                 <h4 class="font-bold">Keranjang kosong</h4>
                 <p class="text-xs px-12 mt-2">Cari dan tambahkan produk untuk memulai belanja</p>
+                <div class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 text-xs font-semibold">
+                    <x-lucide-triangle-alert class="h-4 w-4 shrink-0" />
+                    Transaksi tidak boleh kosong. Tambahkan produk terlebih dahulu.
+                </div>
             </div>
             @else
             @foreach($currentSale->items as $item)
@@ -622,7 +627,8 @@
                         @php
                         $isDebtValid = !empty($customerName);
                         $isPartialFull = $paymentMethod === 'debt' && $currentSale && $partialDebtAmount == $currentSale->total;
-                        $canSelesaikan = (($paymentMethod === 'cash') || ($paymentMethod === 'debt' && $isDebtValid)) && !$isPartialFull;
+                        $isCartEmpty = $currentSale && $currentSale->items->isEmpty();
+                        $canSelesaikan = !$isCartEmpty && (($paymentMethod === 'cash') || ($paymentMethod === 'debt' && $isDebtValid)) && !$isPartialFull;
                         @endphp
                         <button
                             wire:click="finalizeTransaction"
