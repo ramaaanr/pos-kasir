@@ -107,12 +107,13 @@
                         </th>
                         <th wire:click="sort('stok')" class="px-4 py-3 font-semibold text-muted-foreground text-center cursor-pointer hover:text-foreground transition-colors group">
                             <div class="flex items-center justify-center gap-2">
-                                Stok
+                                Stok Sekarang
                                 @if($sortBy === 'stok')
                                 @if($sortDirection === 'asc') <x-lucide-chevron-up class="h-4 w-4 text-primary" /> @else <x-lucide-chevron-down class="h-4 w-4 text-primary" /> @endif
                                 @else <x-lucide-chevrons-up-down class="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" /> @endif
                             </div>
                         </th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground">Stok Adjustment</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground text-center">Status</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground text-right w-[80px]">Aksi</th>
                     </tr>
@@ -148,6 +149,27 @@
                             <span class="inline-flex items-center px-2 py-1 rounded-lg bg-orange-500/10 text-orange-600 font-bold text-xs border border-orange-500/20">
                                 {{ (float)($product->batches_sum_qty_sisa_base ?? 0) }} {{ $product->base_unit }}
                             </span>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="flex flex-col gap-1 max-w-[200px]">
+                                @forelse($product->adjustmentItems->sortByDesc('created_at')->take(2) as $adjItem)
+                                <div class="text-[10px] leading-tight border-l-2 border-primary/20 pl-2 py-0.5">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="text-muted-foreground">{{ $adjItem->created_at->format('d/m/y') }}</span>
+                                        <span class="font-bold {{ $adjItem->qty_after_base > $adjItem->qty_before_base ? 'text-emerald-600' : 'text-rose-600' }}">
+                                            @php $diff = $adjItem->qty_after_base - $adjItem->qty_before_base; @endphp
+                                            {{ $diff > 0 ? '+' : '' }}{{ $diff }} {{ $product->base_unit }}
+                                        </span>
+                                    </div>
+                                    <div class="text-[9px] text-muted-foreground italic truncate" title="{{ $adjItem->adjustment->reason }}">
+                                        <p>{{ $adjItem->adjustment->reason }} </p>
+                                        <p> Batch: {{ $adjItem->batch->batch_code ?? 'N/A' }}</p>
+                                    </div>
+                                </div>
+                                @empty
+                                <span class="text-[10px] text-muted-foreground italic opacity-50">Belum ada penyesuaian</span>
+                                @endforelse
+                            </div>
                         </td>
                         <td class="px-4 py-4 text-center">
                             @if($product->is_active)
@@ -750,6 +772,70 @@
                             <p class="text-sm text-muted-foreground">Tidak ada konfigurasi satuan tambahan untuk produk ini.</p>
                         </div>
                         @endif
+                    </div>
+
+                    {{-- Stock Adjustment History --}}
+                    <div class="pt-6 border-t border-border">
+                        <div class="flex items-center gap-2 mb-4">
+                            <div class="p-1.5 rounded-lg bg-orange-500/10 text-orange-600">
+                                <x-lucide-list-checks class="h-4 w-4" />
+                            </div>
+                            <h4 class="text-sm font-bold text-foreground">Riwayat Stock Adjustment</h4>
+                        </div>
+
+                        <div class="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar space-y-3">
+                            @forelse($selectedProduct->adjustmentItems as $adjItem)
+                            <div class="p-4 rounded-xl border border-border bg-background hover:border-orange-200 hover:bg-orange-50/10 transition-all group">
+                                <div class="flex flex-wrap items-start justify-between gap-2">
+                                    <div class="space-y-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs font-black text-foreground">{{ $adjItem->created_at->translatedFormat('d F Y, H:i') }}</span>
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-widest bg-muted text-muted-foreground border border-border">
+                                                Batch: {{ $adjItem->batch->batch_code ?? 'N/A' }}
+                                            </span>
+                                        </div>
+                                        <p class="text-xs font-medium text-muted-foreground leading-relaxed">{{ $adjItem->adjustment->reason }}</p>
+                                        <div class="flex items-center gap-2 mt-2">
+                                            <div class="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                                                <x-lucide-user class="h-3 w-3 text-primary" />
+                                            </div>
+                                            <span class="text-[10px] text-muted-foreground">Oleh: <strong class="text-foreground">{{ $adjItem->adjustment->user->name ?? 'System' }}</strong></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="text-right">
+                                        <div class="flex flex-col items-end">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Adjustment</span>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <div class="flex flex-col items-center">
+                                                    <span class="text-[9px] text-muted-foreground uppercase font-black">Sebelum</span>
+                                                    <span class="text-sm font-bold text-slate-500 line-through">{{ (float)$adjItem->qty_before_base }}</span>
+                                                </div>
+                                                <x-lucide-arrow-right class="h-3 w-3 text-muted-foreground/50" />
+                                                <div class="flex flex-col items-center">
+                                                    <span class="text-[9px] text-muted-foreground uppercase font-black">Sesudah</span>
+                                                    <span class="text-base font-black {{ $adjItem->qty_after_base > $adjItem->qty_before_base ? 'text-emerald-600' : 'text-rose-600' }}">
+                                                        {{ (float)$adjItem->qty_after_base }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="mt-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter {{ $adjItem->qty_after_base > $adjItem->qty_before_base ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' }}">
+                                                @php $diff = $adjItem->qty_after_base - $adjItem->qty_before_base; @endphp
+                                                {{ $diff > 0 ? '+' : '' }}{{ (float)$diff }} {{ $selectedProduct->base_unit }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @empty
+                            <div class="flex flex-col items-center justify-center py-12 text-center text-muted-foreground opacity-50 italic rounded-2xl border-2 border-dashed border-border">
+                                <x-lucide-clipboard-x class="h-10 w-10 mb-2 opacity-20" />
+                                <p class="text-sm">Belum ada riwayat penyesuaian stok.</p>
+                            </div>
+                            @endforelse
+                        </div>
                     </div>
                 </div>
 

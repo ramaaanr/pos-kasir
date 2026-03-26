@@ -1,7 +1,7 @@
 <div class="space-y-8">
     {{-- Shift Management Alerts --}}
     @if(!$activeShift)
-    <div class="bg-amber-500/10 border border-amber-500/20 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative group">
+    <div wire:key="shift-alert-none" class="bg-amber-500/10 border border-amber-500/20 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative group">
         <div class="relative z-10 flex items-center gap-5">
             <div class="w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/40 animate-pulse">
                 <x-lucide-clock class="w-7 h-7 text-white" />
@@ -18,7 +18,7 @@
         <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-amber-500/5 rounded-full blur-3xl"></div>
     </div>
     @else
-    <div class="relative overflow-hidden rounded-3xl p-6 border transition-all 
+    <div wire:key="shift-alert-active" class="relative overflow-hidden rounded-3xl p-6 border transition-all 
             {{ $isShiftOverdue 
                 ? 'bg-rose-500/10 border-rose-500/30' 
                 : 'bg-emerald-500/10 border-emerald-500/20' }}">
@@ -237,66 +237,85 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {{-- Recent Transactions Table --}}
         <div class="lg:col-span-2 bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden flex flex-col">
-            <div class="p-6 border-b border-border/50 flex items-center justify-between">
-                <h3 class="font-bold text-lg">Transaksi Terakhir</h3>
-                <a href="#" class="text-sm text-primary hover:underline">Lihat Semua</a>
+            <div class="p-6 border-b border-border/50 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-lg">Riwayat Penjualan</h3>
+                </div>
+
+                {{-- Sales Filters --}}
+                <div class="flex flex-col md:flex-row gap-3">
+                    <div class="relative flex-1 group">
+                        <x-lucide-search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <input type="text" wire:model.live.debounce.300ms="saleSearch" placeholder="Cari nomor invoice..." class="w-full bg-muted/50 border-none rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none">
+                    </div>
+                    <select wire:model.live="saleStatus" class="bg-muted/50 border-none rounded-xl py-2 px-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none font-medium">
+                        <option value="all">Semua Status</option>
+                        <option value="completed">Completed</option>
+                        <option value="pending_payment">Pending</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="draft">Draft</option>
+                    </select>
+                </div>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left">
-                    <thead class="bg-muted/50 text-xs uppercase text-muted-foreground font-semibold">
+            <div class="overflow-x-auto overflow-y-auto max-h-[460px] custom-scrollbar">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead class="bg-white  text-xs text-slate-900  font-bold sticky top-0 z-10">
                         <tr>
-                            <th class="px-6 py-4">Invoice</th>
-                            <th class="px-6 py-4">Pelanggan</th>
-                            <th class="px-6 py-4">Waktu</th>
-                            <th class="px-6 py-4 text-right">Total</th>
-                            <th class="px-6 py-4 text-center">Status</th>
+                            <th class="px-6 py-4 border-b border-border/50">Invoice</th>
+                            <th class="px-6 py-4 border-b border-border/50">Pelanggan</th>
+                            <th class="px-6 py-4 border-b border-border/50 text-right">Total</th>
+                            <th class="px-6 py-4 border-b border-border/50 text-center">Metode</th>
+                            <th class="px-6 py-4 border-b border-border/50 text-center">Status</th>
+                            <th class="px-6 py-4 border-b border-border/50 text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-border/50">
                         @forelse($recentTransactions as $sale)
-                        <tr class="hover:bg-muted/5 transition-colors">
-                            <td class="px-6 py-4 font-mono font-medium text-primary">
-                                {{ $sale->invoice_number }}
+                        <tr class="hover:bg-muted/5 transition-colors group">
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col leading-tight">
+                                    <span class="font-mono font-bold text-primary">{{ $sale->invoice_number }}</span>
+                                    <span class="text-[10px] text-muted-foreground">{{ $sale->created_at->format('H:i') }}</span>
+                                </div>
                             </td>
                             <td class="px-6 py-4">
-                                {{ $sale->customer->nama ?? 'Umum' }}
+                                <div class="flex flex-col">
+                                    <span class="font-bold">{{ $sale->customer->nama ?? 'Umum' }}</span>
+                                    <span class="text-[10px] text-muted-foreground">Oleh: {{ $sale->user->name ?? '-' }}</span>
+                                </div>
                             </td>
-                            <td class="px-6 py-4 text-muted-foreground">
-                                {{ $sale->created_at->format('H:i') }}
-                            </td>
-                            <td class="px-6 py-4 text-right font-bold text-foreground">
-                                Rp {{ number_format($sale->total, 0, ',', '.') }}
+                            <td class="px-6 py-4 text-right">
+                                <span class="font-black text-foreground">Rp {{ number_format($sale->total, 0, ',', '.') }}</span>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                @if($sale->payment_method === 'debt' || $sale->status === 'pending_payment')
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-500">
-                                    Hutang
+                                <span class="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-tighter
+                                    {{ $sale->payment_method === 'cash' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-orange-500/10 text-orange-600' }}">
+                                    {{ $sale->payment_method }}
                                 </span>
-                                @elseif($sale->status === 'cancelled')
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-500">
-                                    Batal
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-tighter
+                                    {{ $sale->status === 'completed' ? 'bg-blue-500/10 text-blue-600' : 'bg-amber-500/10 text-amber-600' }}">
+                                    {{ $sale->status }}
                                 </span>
-                                @else
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-500">
-                                    Lunas
-                                </span>
-                                @endif
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <button wire:click="openDetail('{{ $sale->invoice_number }}')" class="p-2 hover:bg-primary/10 rounded-lg text-primary transition-all hover:scale-110 active:scale-90">
+                                    <x-lucide-eye class="h-4 w-4" />
+                                </button>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-muted-foreground">
-                                <div class="flex flex-col items-center gap-2">
-                                    <x-lucide-clipboard-list class="h-8 w-8 text-muted-foreground/30" />
-                                    <p>Belum ada transaksi hari ini</p>
-                                </div>
+                            <td colspan="6" class="px-6 py-12 text-center text-muted-foreground opacity-50 italic">
+                                Tidak ada data penjualan.
                             </td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-            <div class="px-6 py-4 border-t border-border/50 bg-muted/5">
+            <div class="px-6 py-4 border-t border-border/50 bg-muted/5 mt-auto">
                 {{ $recentTransactions->links(data: ['scrollTo' => false]) }}
             </div>
         </div>
@@ -341,4 +360,113 @@
             </div>
         </div>
     </div>
+
+    {{-- Sale Detail Modal --}}
+    @if($showDetailModal && $selectedSale)
+    <div class="fixed inset-0 z-[140] overflow-y-auto" wire:keydown.escape.window="closeDetail">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-background/80 backdrop-blur-md transition-opacity" wire:click="closeDetail"></div>
+
+            <div class="relative bg-card w-full max-w-2xl rounded-3xl shadow-2xl border border-border overflow-hidden animate-in zoom-in duration-300">
+                {{-- Modal Header --}}
+                <div class="p-6 border-b border-border bg-muted/30 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="p-3 rounded-2xl bg-primary/10 text-primary">
+                            <x-lucide-file-text class="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black text-foreground tracking-tight">Detail Penjualan</h3>
+                            <p class="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{{ $selectedSale->invoice_number }}</p>
+                        </div>
+                    </div>
+                    <button wire:click="closeDetail" class="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground">
+                        <x-lucide-x class="w-5 h-5" />
+                    </button>
+                </div>
+
+                {{-- Modal Body --}}
+                <div class="p-6 space-y-8">
+                    {{-- Basic Info --}}
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Pelanggan</h4>
+                                <p class="text-sm font-bold text-foreground">{{ $selectedSale->customer->nama ?? 'Umum (Walk-in)' }}</p>
+                            </div>
+                            <div>
+                                <h4 class="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Kasir</h4>
+                                <p class="text-sm font-bold text-foreground">{{ $selectedSale->user->name ?? 'System' }}</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4 text-right">
+                            <div>
+                                <h4 class="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Waktu</h4>
+                                <p class="text-sm font-bold text-foreground">{{ $selectedSale->created_at->translatedFormat('d F Y, H:i') }}</p>
+                            </div>
+                            <div>
+                                <h4 class="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Metode Bayar</h4>
+                                <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase {{ $selectedSale->payment_method === 'cash' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-orange-500/10 text-orange-600' }}">
+                                    {{ $selectedSale->payment_method }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Items Table --}}
+                    <div class="space-y-3">
+                        <h4 class="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                            <x-lucide-box class="w-3 h-3" />
+                            Daftar Barang
+                        </h4>
+                        <div class="rounded-2xl border border-border/50 overflow-hidden">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-muted/30 border-b border-border">
+                                    <tr>
+                                        <th class="px-4 py-3 font-black text-muted-foreground uppercase tracking-widest text-[9px]">Produk</th>
+                                        <th class="px-4 py-3 font-black text-muted-foreground uppercase tracking-widest text-[9px] text-right">Qty</th>
+                                        <th class="px-4 py-3 font-black text-muted-foreground uppercase tracking-widest text-[9px] text-right">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border">
+                                    @foreach($selectedSale->items as $item)
+                                    <tr class="hover:bg-muted/5 transition-colors">
+                                        <td class="px-4 py-3 font-bold text-foreground">
+                                            {{ $item->product->nama ?? 'Produk Dihapus' }}
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-medium">
+                                            {{ (float)($item->qty_base / $item->unit_multiplier) }} {{ $item->unit_label }}
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-bold text-foreground">
+                                            Rp {{ number_format($item->subtotal, 0, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="bg-muted/10 border-t border-border">
+                                    <tr>
+                                        <td colspan="2" class="px-4 py-3 text-right font-black uppercase tracking-widest text-[9px] text-muted-foreground text-base">TOTAL PENJUALAN</td>
+                                        <td class="px-4 py-3 text-right font-black text-primary text-lg">
+                                            Rp {{ number_format($selectedSale->total, 0, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Modal Footer --}}
+                <div class="p-6 border-t border-border bg-muted/30 flex items-center justify-between">
+                    <button wire:click="printInvoice" class="flex items-center gap-2 px-6 py-2.5 bg-orange-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all active:scale-95">
+                        <x-lucide-printer class="w-4 h-4" />
+                        Cetak Ulang Struk
+                    </button>
+                    <button wire:click="closeDetail" class="px-8 py-2.5 bg-muted text-foreground font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-muted/80 transition-all active:scale-95 border border-border">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
