@@ -19,6 +19,13 @@ class KasirDashboard extends Component
 
     #[Url(as: 'q')]
     public $stockSearch = '';
+
+    #[Url(as: 'sale_q')]
+    public $saleSearch = '';
+
+    #[Url(as: 'sale_status')]
+    public $saleStatus = 'all';
+
     public $openingCash = 0;
     public $cashInDrawer = 0;
     public $note = '';
@@ -26,6 +33,10 @@ class KasirDashboard extends Component
     public $showOpeningModal = false;
     public $showClosingModal = false;
     public $isShiftOverdue = false;
+
+    // Sales History Detail
+    public $showDetailModal = false;
+    public $selectedSale = null;
 
     public function mount()
     {
@@ -40,6 +51,7 @@ class KasirDashboard extends Component
 
         if (!$activeShift) {
             $this->showOpeningModal = true;
+            $this->isShiftOverdue = false; // Reset if no active shift
         } else {
             // Check if shift is older than 24 hours
             $this->isShiftOverdue = $activeShift->start_time->diffInHours(now()) >= 24;
@@ -67,7 +79,11 @@ class KasirDashboard extends Component
         ]);
 
         $this->showOpeningModal = false;
+        $this->isShiftOverdue = false; // Brand new shift is never overdue
         $this->dispatch('notify', message: 'Shift dimulai!', type: 'success');
+
+        // Refresh state
+        $this->checkActiveShift();
     }
 
     public function calculateSystemCash()
@@ -126,7 +142,52 @@ class KasirDashboard extends Component
         $this->note = '';
         
         $this->dispatch('notify', message: 'Shift ditutup!', type: 'success');
-        $this->showOpeningModal = true; // Ask for next shift if they refresh or stay
+        $this->checkActiveShift(); // This will set showOpeningModal to true and reset isShiftOverdue
+    }
+
+    public function openDetail($invoiceNumber)
+    {
+        $this->selectedSale = Sale::with(['items.product', 'customer', 'user', 'debt'])
+            ->where('invoice_number', $invoiceNumber)
+            ->first();
+
+        if ($this->selectedSale) {
+            $this->showDetailModal = true;
+        } else {
+            $this->dispatch('notify', message: 'Invoice tidak ditemukan.', type: 'error');
+        }
+    }
+
+    public function closeDetail()
+    {
+        $this->showDetailModal = false;
+        $this->selectedSale = null;
+    }
+
+    public function printInvoice()
+    {
+        if (!$this->selectedSale) return;
+
+        try {
+            app(\App\Services\PrinterService::class)->printInvoice($this->selectedSale);
+            $this->dispatch('notify', message: 'Struk berhasil dicetak.', type: 'success');
+        } catch (\Exception $e) {
+            $printerUrl = config('app.printer_url');
+            $this->dispatch('notify', message: "Gagal mencetak: " . $e->getMessage(), type: 'error');
+        }
+    }
+
+    public function updatingSaleSearch()
+    {
+        $this->resetPage('sales');
+    }
+    public function updatingSaleStatus()
+    {
+        $this->resetPage('sales');
+    }
+    public function updatingStockSearch()
+    {
+        $this->resetPage('stock');
     }
     public function render()
     {
@@ -140,9 +201,15 @@ class KasirDashboard extends Component
             ->where('status', 'completed')
             ->sum('total');
 
-        $recentTransactions = Sale::with('customer')
+        $recentTransactions = Sale::with(['customer', 'user'])
+            ->when($this->saleSearch, function ($q) {
+                $q->where('invoice_number', 'like', '%' . $this->saleSearch . '%');
+            })
+            ->when($this->saleStatus !== 'all', function ($q) {
+                $q->where('status', $this->saleStatus);
+            })
             ->latest()
-            ->paginate(10, pageName: 'transactions');
+            ->paginate(10, pageName: 'sales');
 
         $stockData = \App\Models\Product::active()
             ->search($this->stockSearch)

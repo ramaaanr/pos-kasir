@@ -21,8 +21,13 @@ class ProductBatch extends Model
     ];
 
     protected $casts = [
-        'is_bonus' => 'boolean',
-        'tanggal_masuk' => 'date',
+        'is_bonus'            => 'boolean',
+        'tanggal_masuk'       => 'date',
+        'harga_beli_per_unit' => 'float',
+        'harga_jual_per_unit' => 'float',
+        'qty_masuk_base'      => 'integer',
+        'qty_sisa_base'       => 'integer',
+        'qty_masuk_original'  => 'float',
     ];
 
     public function product()

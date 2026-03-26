@@ -21,7 +21,9 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'is_active'          => 'boolean',
+        'harga_beli_default' => 'float',
+        'harga_jual_default' => 'float',
     ];
 
     public function category()
@@ -50,5 +52,15 @@ class Product extends Model
     public function batches()
     {
         return $this->hasMany(ProductBatch::class);
+    }
+
+    public function adjustmentItems()
+    {
+        return $this->hasManyThrough(
+            StockAdjustmentItem::class,
+            ProductBatch::class,
+            'product_id',
+            'product_batch_id'
+        );
     }
 }

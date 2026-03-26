@@ -248,7 +248,13 @@ class ProductList extends Component
 
     public function openDetailModal(int $id)
     {
-        $this->selectedProduct = \App\Models\Product::with(['category', 'units'])
+        $this->selectedProduct = \App\Models\Product::with([
+            'category',
+            'units',
+            'adjustmentItems' => function ($q) {
+                $q->with(['adjustment.user', 'batch'])->latest();
+            }
+        ])
             ->withSum('batches', 'qty_sisa_base')
             ->findOrFail($id);
         $this->showDetailModal = true;
