@@ -22,7 +22,7 @@ class AdminAccessModal extends Component
 
     public function checkPassword()
     {
-        if ($this->password === 'KasirPos2026') {
+        if ($this->password === 'erveloriasepan') {
             session(['admin_authenticated' => true]);
 
             // Auto-login an admin user if available, to keep Filament/other components happy
