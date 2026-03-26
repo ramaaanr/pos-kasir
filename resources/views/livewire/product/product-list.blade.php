@@ -67,52 +67,23 @@
                     <tr class="border-b border-border bg-muted/30">
                         <th wire:click="sort('nama')" class="px-4 py-3 font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors group">
                             <div class="flex items-center gap-2">
-                                Produk
-                                @if($sortBy === 'nama')
-                                @if($sortDirection === 'asc') <x-lucide-chevron-up class="h-4 w-4 text-primary" /> @else <x-lucide-chevron-down class="h-4 w-4 text-primary" /> @endif
-                                @else <x-lucide-chevrons-up-down class="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" /> @endif
+                                Produk & Barcode
                             </div>
                         </th>
                         <th wire:click="sort('category_name')" class="px-4 py-3 font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors group">
                             <div class="flex items-center gap-2">
                                 Kategori
-                                @if($sortBy === 'category_name')
-                                @if($sortDirection === 'asc') <x-lucide-chevron-up class="h-4 w-4 text-primary" /> @else <x-lucide-chevron-down class="h-4 w-4 text-primary" /> @endif
-                                @else <x-lucide-chevrons-up-down class="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" /> @endif
                             </div>
                         </th>
-                        <th wire:click="sort('kode_produk')" class="px-4 py-3 font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors group">
-                            <div class="flex items-center gap-2">
-                                Barcode
-                                @if($sortBy === 'kode_produk')
-                                @if($sortDirection === 'asc') <x-lucide-chevron-up class="h-4 w-4 text-primary" /> @else <x-lucide-chevron-down class="h-4 w-4 text-primary" /> @endif
-                                @else <x-lucide-chevrons-up-down class="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" /> @endif
-                            </div>
-                        </th>
-                        <th wire:click="sort('harga_beli_default')" class="px-6 py-3 font-semibold text-muted-foreground text-right cursor-pointer hover:text-foreground transition-colors group">
-                            <div class="flex items-center justify-end gap-2">
-                                Harga Beli
-                                @if($sortBy === 'harga_beli_default')
-                                @if($sortDirection === 'asc') <x-lucide-chevron-up class="h-4 w-4 text-primary" /> @else <x-lucide-chevron-down class="h-4 w-4 text-primary" /> @endif
-                                @else <x-lucide-chevrons-up-down class="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" /> @endif
-                            </div>
-                        </th>
-                        <th wire:click="sort('harga_jual_default')" class="px-6 py-3 font-semibold text-muted-foreground text-right cursor-pointer hover:text-foreground transition-colors group">
-                            <div class="flex items-center justify-end gap-2">
-                                Harga Jual
-                                @if($sortBy === 'harga_jual_default')
-                                @if($sortDirection === 'asc') <x-lucide-chevron-up class="h-4 w-4 text-primary" /> @else <x-lucide-chevron-down class="h-4 w-4 text-primary" /> @endif
-                                @else <x-lucide-chevrons-up-down class="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" /> @endif
-                            </div>
+                        <th class="px-6 py-3 font-semibold text-muted-foreground text-center">
+                            Harga (<span class="text-blue-600">Beli</span>/<span class="text-emerald-600">Jual</span>)
                         </th>
                         <th wire:click="sort('stok')" class="px-4 py-3 font-semibold text-muted-foreground text-center cursor-pointer hover:text-foreground transition-colors group">
                             <div class="flex items-center justify-center gap-2">
                                 Stok Sekarang
-                                @if($sortBy === 'stok')
-                                @if($sortDirection === 'asc') <x-lucide-chevron-up class="h-4 w-4 text-primary" /> @else <x-lucide-chevron-down class="h-4 w-4 text-primary" /> @endif
-                                @else <x-lucide-chevrons-up-down class="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" /> @endif
                             </div>
                         </th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground">Batch</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground">Stok Adjustment</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground text-center">Status</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground text-right w-[80px]">Aksi</th>
@@ -130,20 +101,21 @@
                     </tr>
                     @forelse($products as $product)
                     <tr class="hover:bg-muted/50 transition-colors group">
-                        <td class="px-4 py-4 font-medium text-foreground">
-                            {{ $product->nama }}
+                        <td class="px-4 py-4">
+                            <div class="flex flex-col leading-tight">
+                                <span class="font-bold text-foreground">{{ $product->nama }}</span>
+                                <span class="text-[10px] font-mono text-muted-foreground mt-1 bg-muted/50 px-1.5 py-0.5 rounded w-fit uppercase tracking-wider">{{ $product->kode_produk }}</span>
+                            </div>
                         </td>
                         <td class="px-4 py-4 text-muted-foreground">
                             {{ $product->category->name ?? 'Tanpa Kategori' }}
                         </td>
-                        <td class="px-4 py-4 font-mono text-xs text-muted-foreground uppercase">
-                            {{ $product->kode_produk }}
-                        </td>
-                        <td class="px-6 py-4 text-right font-medium">
-                            Rp {{ number_format($product->harga_beli_default, 0, ',', '.') }}
-                        </td>
-                        <td class="px-6 py-4 text-right font-bold text-primary">
-                            Rp {{ number_format($product->harga_jual_default, 0, ',', '.') }}
+                        <td class="px-6 py-4 text-center whitespace-nowrap">
+                            <div class="text-xs font-black flex items-center justify-center gap-1.5">
+                                <span class="text-blue-600">Rp {{ number_format($product->harga_beli_default, 0, ',', '.') }}</span>
+                                <x-lucide-arrow-left-right class="h-3 w-3 text-muted-foreground/30" />
+                                <span class="text-emerald-600">{{ number_format($product->harga_jual_default, 0, ',', '.') }}</span>
+                            </div>
                         </td>
                         <td class="px-4 py-4 text-center">
                             <span class="inline-flex items-center px-2 py-1 rounded-lg bg-orange-500/10 text-orange-600 font-bold text-xs border border-orange-500/20">
@@ -151,19 +123,45 @@
                             </span>
                         </td>
                         <td class="px-4 py-4">
+                            <div class="flex flex-col gap-1.5 min-w-[150px]">
+                                @forelse($product->batches as $batch)
+                                <div class="p-2 rounded-lg bg-blue-500/5 border border-blue-500/10 space-y-1 group/batch">
+                                    <div class="flex justify-between items-start gap-2">
+                                        <span class="font-mono font-black text-[10px] text-blue-700 uppercase tracking-tighter">{{ $batch->batch_code }}</span>
+                                        <span class="text-[9px] font-bold text-muted-foreground whitespace-nowrap">{{ $batch->tanggal_masuk->format('d/m/y') }}</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center gap-1">
+                                            <span class="text-xs font-black text-foreground">{{ (float)$batch->qty_masuk_original }}</span>
+                                            <span class="text-[10px] font-bold text-muted-foreground uppercase">{{ $batch->input_unit_name }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-1 text-primary">
+                                            <x-lucide-corner-down-right class="h-2.5 w-2.5 opacity-30" />
+                                            <span class="text-[9px] font-black uppercase tracking-tighter">{{ (float)$batch->qty_masuk_base }} {{ $product->base_unit }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                @empty
+                                <div class="flex items-center gap-1.5 text-muted-foreground/40 italic">
+                                    <x-lucide-minus class="h-3 w-3" />
+                                    <span class="text-[10px] font-medium tracking-tight">Belum ada batch</span>
+                                </div>
+                                @endforelse
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
                             <div class="flex flex-col gap-1 max-w-[200px]">
-                                @forelse($product->adjustmentItems->sortByDesc('created_at')->take(2) as $adjItem)
+                                @forelse($product->adjustmentItems->sortByDesc('created_at')->take(3) as $adjItem)
                                 <div class="text-[10px] leading-tight border-l-2 border-primary/20 pl-2 py-0.5">
                                     <div class="flex items-center justify-between gap-2">
                                         <span class="text-muted-foreground">{{ $adjItem->created_at->format('d/m/y') }}</span>
                                         <span class="font-bold {{ $adjItem->qty_after_base > $adjItem->qty_before_base ? 'text-emerald-600' : 'text-rose-600' }}">
                                             @php $diff = $adjItem->qty_after_base - $adjItem->qty_before_base; @endphp
-                                            {{ $diff > 0 ? '+' : '' }}{{ $diff }} {{ $product->base_unit }}
+                                            {{ $diff > 0 ? '+' : '' }}{{ (float)$diff }} {{ $product->base_unit }}
                                         </span>
                                     </div>
                                     <div class="text-[9px] text-muted-foreground italic truncate" title="{{ $adjItem->adjustment->reason }}">
-                                        <p>{{ $adjItem->adjustment->reason }} </p>
-                                        <p> Batch: {{ $adjItem->batch->batch_code ?? 'N/A' }}</p>
+                                        {{ $adjItem->adjustment->reason }} • <span class="font-bold opacity-60">{{ $adjItem->batch->batch_code ?? 'N/A' }}</span>
                                     </div>
                                 </div>
                                 @empty
@@ -251,7 +249,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-20 text-center">
+                        <td colspan="8" class="px-4 py-20 text-center">
                             <div class="flex flex-col items-center justify-center gap-3">
                                 <div class="p-4 rounded-full bg-muted/50">
                                     <x-lucide-package class="h-10 w-10 text-muted-foreground/30" />

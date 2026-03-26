@@ -76,6 +76,7 @@
                         <th class="px-6 py-3 font-semibold text-muted-foreground text-right">Harga Beli</th>
                         <th class="px-6 py-3 font-semibold text-muted-foreground text-right">Harga Jual</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground text-center">Stok (Sisa/Masuk)</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground">Stock Adjustment</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground text-right w-[80px]">Aksi</th>
                     </tr>
                 </thead>
@@ -122,6 +123,45 @@
                                 <span class="text-[10px] text-muted-foreground uppercase tracking-tighter">dari {{ $batch->qty_masuk_base }} {{ $batch->product->base_unit }}</span>
                             </div>
                         </td>
+                        <td class="px-4 py-4">
+                            @if($batch->adjustmentItems->count() > 0)
+                            <div class="flex flex-col gap-1.5 max-w-[200px]">
+                                @foreach($batch->adjustmentItems as $adjItem)
+                                <div class="p-2 rounded-lg bg-orange-500/5 border border-orange-500/10 space-y-1 group/adj relative overflow-hidden">
+                                    <div class="absolute top-0 right-0 p-1 opacity-10">
+                                        <x-lucide-clipboard-edit class="h-3 w-3" />
+                                    </div>
+                                    <div class="flex justify-between items-start gap-2">
+                                        <span class="text-[9px] font-black text-orange-700 uppercase tracking-tighter line-clamp-1" title="{{ $adjItem->adjustment->reason }}">
+                                            {{ $adjItem->adjustment->reason }}
+                                        </span>
+                                        <span class="text-[8px] font-bold text-muted-foreground whitespace-nowrap bg-muted px-1 rounded">
+                                            {{ $adjItem->created_at->format('d/m/y') }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="flex items-center gap-1 font-mono text-[10px]">
+                                            <span class="text-slate-400 line-through">{{ (float)$adjItem->qty_before_base }}</span>
+                                            <x-lucide-arrow-right class="h-2.5 w-2.5 text-muted-foreground/30" />
+                                            <span class="font-black {{ $adjItem->qty_after_base > $adjItem->qty_before_base ? 'text-emerald-600' : 'text-rose-600' }}">
+                                                {{ (float)$adjItem->qty_after_base }}
+                                            </span>
+                                        </div>
+                                        <div class="h-1 w-1 rounded-full bg-border"></div>
+                                        <span class="text-[9px] font-bold text-muted-foreground truncate" title="Oleh: {{ $adjItem->adjustment->user->name }}">
+                                            {{ explode(' ', $adjItem->adjustment->user->name)[0] }}
+                                        </span>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                            @else
+                            <div class="flex items-center gap-1.5 text-muted-foreground/40 italic">
+                                <x-lucide-minus class="h-3 w-3" />
+                                <span class="text-[10px] font-medium tracking-tight">Belum ada penyesuaian</span>
+                            </div>
+                            @endif
+                        </td>
                         <td class="px-4 py-4 text-right relative">
                             <div class="dropdown inline-block relative">
                                 <button class="p-1.5 hover:bg-muted rounded-md transition-all duration-200 text-muted-foreground hover:text-foreground focus:ring-2 focus:ring-primary/20 dropdown-toggle">
@@ -167,7 +207,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-20 text-center">
+                        <td colspan="9" class="px-4 py-20 text-center">
                             <div class="flex flex-col items-center justify-center gap-3">
                                 <div class="p-4 rounded-full bg-muted/50">
                                     <x-lucide-truck class="h-10 w-10 text-muted-foreground/30" />

@@ -17,7 +17,9 @@ class ProductService
     public function getPaginatedProducts(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
         return Product::query()
-            ->with(['category', 'adjustmentItems' => function ($q) {
+            ->with(['category', 'batches' => function ($q) {
+                $q->latest();
+            }, 'adjustmentItems' => function ($q) {
                 $q->with(['adjustment', 'batch'])->latest()->take(3);
             }])
             ->withSum('batches', 'qty_sisa_base')

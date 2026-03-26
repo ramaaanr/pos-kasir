@@ -596,7 +596,7 @@ class ProductBatchList extends Component
 
     public function render()
     {
-        $query = ProductBatch::with('product')
+        $query = ProductBatch::with(['product', 'adjustmentItems.adjustment.user'])
             ->when($this->search, function ($q) {
                 $search = '%' . $this->search . '%';
                 $q->where('batch_code', 'like', $search)

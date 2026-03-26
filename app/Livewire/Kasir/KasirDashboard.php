@@ -213,6 +213,9 @@ class KasirDashboard extends Component
 
         $stockData = \App\Models\Product::active()
             ->search($this->stockSearch)
+            ->with(['batches' => function($q) {
+                $q->where('qty_sisa_base', '>', 0)->latest();
+            }])
             ->withSum('batches', 'qty_sisa_base')
             ->orderBy('batches_sum_qty_sisa_base', 'asc')
             ->paginate(10, pageName: 'stock');

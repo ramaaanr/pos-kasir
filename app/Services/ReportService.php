@@ -40,12 +40,12 @@ class ReportService
         ];
     }
 
-    /**
-     * 2. Laporan Stok Real-time
-     */
     public function getRealtimeStockReport()
     {
         return Product::where('is_active', true)
+            ->with(['batches' => function($q) {
+                $q->where('qty_sisa_base', '>', 0)->latest();
+            }])
             ->withSum('batches as total_stock', 'qty_sisa_base')
             ->orderBy('nama')
             ->get()
@@ -57,6 +57,19 @@ class ReportService
                 $product->stock_status = $status;
                 return $product;
             });
+    }
+
+    /**
+     * 2b. Laporan Stok per Batch (Real-time)
+     */
+    public function getRealtimeBatchReport()
+    {
+        return ProductBatch::where('qty_sisa_base', '>', 0)
+            ->with('product')
+            ->join('products', 'product_batches.product_id', '=', 'products.id')
+            ->orderBy('products.nama')
+            ->select('product_batches.*')
+            ->get();
     }
 
     /**

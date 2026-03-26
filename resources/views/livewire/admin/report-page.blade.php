@@ -400,7 +400,7 @@
                                     </thead>
                                     <tbody class="divide-y divide-border">
                                         @forelse($this->reportData as $product)
-                                        <tr class="hover:bg-muted/20">
+                                        <tr class="hover:bg-muted/20 align-top">
                                             <td class="px-4 py-3">
                                                 <div class="flex flex-col">
                                                     <span class="font-bold text-foreground">{{ $product['nama'] ?? 'Tanpa Nama' }}</span>
@@ -408,8 +408,34 @@
                                                 </div>
                                             </td>
                                             <td class="px-4 py-3">
-                                                <span class="font-black text-primary text-base">{{ number_format($product['total_stock'] ?? 0, 0) }}</span>
-                                                <span class="text-[10px] font-bold text-muted-foreground">{{ $product['base_unit'] ?? 'Pcs' }}</span>
+                                                <div class="flex flex-col gap-2">
+                                                    <div class="flex items-end gap-2">
+                                                        <span class="font-black text-primary text-base">{{ number_format($product['total_stock'] ?? 0, 0) }}</span>
+                                                        <span class="text-[10px] font-bold text-muted-foreground pb-1 uppercase">{{ $product['base_unit'] ?? 'Pcs' }}</span>
+                                                    </div>
+                                                    
+                                                    @if(!empty($product['batches']))
+                                                    <div class="space-y-1">
+                                                        <span class="text-[8px] font-black text-muted-foreground uppercase tracking-wider">Batch Aktif:</span>
+                                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                                            @foreach($product['batches'] as $batch)
+                                                            <div class="p-1.5 rounded-lg bg-muted/50 border border-border/50 text-[10px] space-y-0.5">
+                                                                <div class="flex justify-between items-center gap-2">
+                                                                    <span class="font-mono font-bold text-blue-600 uppercase tracking-tighter">{{ $batch['batch_code'] }}</span>
+                                                                    <span class="text-[8px] text-muted-foreground">{{ date('d/m/y', strtotime($batch['tanggal_masuk'])) }}</span>
+                                                                </div>
+                                                                <div class="flex items-center justify-between">
+                                                                    <span class="font-black">{{ (float)$batch['qty_sisa_base'] }} {{ $product['base_unit'] }}</span>
+                                                                    @if($batch['qty_masuk_original'] > 0)
+                                                                    <span class="text-[8px] opacity-60">Sisa dari {{ (float)$batch['qty_masuk_original'] }} {{ $batch['input_unit_name'] }}</span>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                    @endif
+                                                </div>
                                             </td>
                                             <td class="px-4 py-3 text-center">
                                                 @php $status = $product['stock_status'] ?? 'aman'; @endphp
@@ -477,11 +503,22 @@
                             @elseif($selectedReport === 'fifo_pnl')
                             {{-- 6. P&L FIFO VIEW --}}
                             <div class="p-6">
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                                     @php
                                     $totalRev = collect($this->reportData)->sum('total_revenue');
                                     $totalCogs = collect($this->reportData)->sum('total_cogs');
                                     $totalProfit = $totalRev - $totalCogs;
+
+                                    // Outstanding (unpaid) debt from sales within this period
+                                    $outstandingDebt = \App\Models\Debt::whereHas('sale', function($q) {
+                                        $q->whereDate('created_at', '>=', $this->startDate)
+                                          ->whereDate('created_at', '<=', $this->endDate);
+                                    })->whereIn('status', ['OPEN', 'PARTIAL'])
+                                      ->with('payments')
+                                      ->get()
+                                      ->sum(fn($d) => $d->amount - $d->payments->sum('amount'));
+
+                                    $accrualProfit = $totalProfit - $outstandingDebt;
                                     @endphp
                                     <div class="p-5 rounded-3xl bg-blue-500/5 border border-blue-500/10">
                                         <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">Total Revenue</span>
@@ -495,6 +532,14 @@
                                         <span class="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Gross Profit</span>
                                         <p class="text-2xl font-black text-emerald-600">Rp {{ number_format($totalProfit, 0, ',', '.') }}</p>
                                         <span class="text-[10px] font-black text-emerald-500">{{ $totalRev > 0 ? number_format(($totalProfit / $totalRev) * 100, 1) : 0 }}% Margin</span>
+                                    </div>
+                                    <div class="p-5 rounded-3xl border {{ $accrualProfit >= 0 ? 'bg-violet-500/10 border-violet-500/20 shadow-violet-500/5' : 'bg-rose-500/10 border-rose-500/20 shadow-rose-500/5' }} shadow-lg">
+                                        <span class="text-[9px] font-black {{ $accrualProfit >= 0 ? 'text-violet-600' : 'text-rose-600' }} uppercase tracking-widest">Accrual Profit</span>
+                                        <p class="text-2xl font-black {{ $accrualProfit >= 0 ? 'text-violet-600' : 'text-rose-600' }}">Rp {{ number_format($accrualProfit, 0, ',', '.') }}</p>
+                                        <span class="text-[10px] font-medium text-muted-foreground">Gross − Hutang Belum Bayar</span>
+                                        <div class="mt-1 text-[9px] text-rose-500 font-bold">
+                                            − Rp {{ number_format($outstandingDebt, 0, ',', '.') }} outstanding
+                                        </div>
                                     </div>
                                 </div>
 
@@ -526,7 +571,33 @@
 
                             @elseif($selectedReport === 'hutang_outstanding')
                             {{-- 4. HUTANG OUTSTANDING VIEW --}}
-                            <div class="p-6">
+                            <div class="p-6 space-y-4">
+                                @php
+                                    $totalHutang = collect($this->reportData)->sum('amount');
+                                    $totalOpen = collect($this->reportData)->where('status', 'OPEN')->sum('amount');
+                                    $totalPartial = collect($this->reportData)->where('status', 'PARTIAL')->sum('amount');
+                                    $countDebts = count($this->reportData);
+                                @endphp
+                                
+                                {{-- Summary Cards --}}
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div class="p-3 rounded-2xl bg-red-500/5 border border-red-500/15 space-y-0.5">
+                                        <p class="text-[9px] font-black text-red-500 uppercase tracking-widest">Total Outstanding</p>
+                                        <p class="text-lg font-black text-red-600">Rp {{ number_format($totalHutang, 0, ',', '.') }}</p>
+                                        <p class="text-[9px] text-muted-foreground font-medium">{{ $countDebts }} tagihan aktif</p>
+                                    </div>
+                                    <div class="p-3 rounded-2xl bg-rose-500/5 border border-rose-500/15 space-y-0.5">
+                                        <p class="text-[9px] font-black text-rose-600 uppercase tracking-widest">Belum Bayar (OPEN)</p>
+                                        <p class="text-base font-black text-rose-600">Rp {{ number_format($totalOpen, 0, ',', '.') }}</p>
+                                        <p class="text-[9px] text-muted-foreground font-medium">{{ collect($this->reportData)->where('status', 'OPEN')->count() }} tagihan</p>
+                                    </div>
+                                    <div class="p-3 rounded-2xl bg-amber-500/5 border border-amber-500/15 space-y-0.5">
+                                        <p class="text-[9px] font-black text-amber-600 uppercase tracking-widest">Bayar Sebagian</p>
+                                        <p class="text-base font-black text-amber-600">Rp {{ number_format($totalPartial, 0, ',', '.') }}</p>
+                                        <p class="text-[9px] text-muted-foreground font-medium">{{ collect($this->reportData)->where('status', 'PARTIAL')->count() }} tagihan</p>
+                                    </div>
+                                </div>
+
                                 <table class="w-full text-xs text-left">
                                     <thead>
                                         <tr class="bg-muted/30 border-y border-border">
@@ -559,10 +630,21 @@
                                         </tr>
                                         @empty
                                         <tr>
-                                            <td colspan="4" class="px-4 py-10 text-center text-muted-foreground italic">Tidak ada hutang aktif</td>
+                                            <td colspan="5" class="px-4 py-10 text-center text-muted-foreground italic">Tidak ada hutang aktif</td>
                                         </tr>
                                         @endforelse
                                     </tbody>
+                                    @if($countDebts > 0)
+                                    <tfoot class="border-t-2 border-border bg-muted/20">
+                                        <tr>
+                                            <td colspan="3" class="px-4 py-3 text-right text-[9px] font-black text-muted-foreground uppercase tracking-widest">TOTAL KESELURUHAN</td>
+                                            <td class="px-4 py-3 text-right font-black text-red-600 text-sm">Rp {{ number_format($totalHutang, 0, ',', '.') }}</td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-red-500/10 text-red-600">{{ $countDebts }} Tagihan</span>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                    @endif
                                 </table>
                             </div>
 

@@ -126,8 +126,9 @@
                                         <div>
                                             <div class="flex items-center gap-2 mb-1">
                                                 <span class="font-mono text-xs font-bold bg-muted px-2 py-0.5 rounded">{{ $debt->sale->invoice_number }}</span>
-                                                <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full {{ $debt->status === 'PARTIAL' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600' }}">
-                                                    {{ $debt->status }}
+                                                <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full 
+                                                    {{ $debt->status === 'PAID' ? 'bg-emerald-100 text-emerald-600' : ($debt->status === 'PARTIAL' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600') }}">
+                                                    {{ $debt->status === 'PAID' ? 'LUNAS' : $debt->status }}
                                                 </span>
                                             </div>
                                             <p class="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mb-2">Tercatat: {{ $debt->created_at->format('d M Y, H:i') }}</p>
@@ -140,22 +141,33 @@
                                             <span class="text-[10px] font-bold text-muted-foreground uppercase opacity-60">Sisa Hutang:</span>
                                             <span class="text-xl font-black text-primary tracking-tighter">Rp {{ number_format($debt->remaining_balance, 0, ',', '.') }}</span>
                                         </div>
-                                        <div class="flex gap-2">
-                                            <button 
-                                                wire:click="openHistoryModal({{ $debt->id }})"
-                                                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-primary text-primary font-bold text-sm hover:bg-primary/10 transition-all"
-                                            >
-                                                <x-lucide-history class="h-4 w-4" />
-                                                History
-                                            </button>
-                                            <button 
-                                                wire:click="openPaymentModal({{ $debt->id }})"
-                                                class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20"
-                                            >
-                                                <x-lucide-check-circle class="h-4 w-4" />
-                                                Bayar Sekarang
-                                            </button>
-                                        </div>
+                                            <div class="flex gap-2">
+                                                <button 
+                                                    wire:click="openHistoryModal({{ $debt->id }})"
+                                                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-primary text-primary font-bold text-sm hover:bg-primary/10 transition-all"
+                                                >
+                                                    <x-lucide-history class="h-4 w-4" />
+                                                    History
+                                                </button>
+                                                
+                                                @if($debt->status !== 'PAID')
+                                                <button 
+                                                    wire:click="openPaymentModal({{ $debt->id }})"
+                                                    class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20"
+                                                >
+                                                    <x-lucide-check-circle class="h-4 w-4" />
+                                                    Bayar Sekarang
+                                                </button>
+                                                @else
+                                                <button 
+                                                    disabled
+                                                    class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-muted text-muted-foreground font-bold text-sm cursor-not-allowed border border-border"
+                                                >
+                                                    <x-lucide-check-circle class="h-4 w-4" />
+                                                    Terbayar
+                                                </button>
+                                                @endif
+                                            </div>
                                     </div>
                                 </div>
                                 

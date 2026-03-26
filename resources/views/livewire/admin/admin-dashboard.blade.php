@@ -1,7 +1,7 @@
 <div class="space-y-8 animate-fade-in">
     @if(!$part || $part === 'stats')
     {{-- Monthly Business Stats --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
         {{-- Revenue Card --}}
         <div class="bg-card border border-border/50 p-6 rounded-3xl shadow-sm relative overflow-hidden group">
             <div class="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform duration-700">
@@ -39,6 +39,22 @@
                 <div class="flex items-center gap-2 mt-4 text-[10px] font-bold text-muted-foreground">
                     <span>Laba Bersih:</span>
                     <span class="text-emerald-600 font-black">Rp {{ number_format($monthlyStats['profit'], 0, ',', '.') }}</span>
+                </div>
+            </div>
+        </div>
+
+        {{-- Accrual Profit Card --}}
+        @php $accrualProfit = $monthlyStats['accrual_profit'] ?? 0; $outstandingDebt = $monthlyStats['outstanding_debt'] ?? 0; @endphp
+        <div class="border p-6 rounded-3xl shadow-sm relative overflow-hidden group {{ $accrualProfit >= 0 ? 'bg-violet-500/5 border-violet-500/20' : 'bg-rose-500/5 border-rose-500/20' }}">
+            <div class="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform duration-700">
+                <x-lucide-wallet class="w-24 h-24 {{ $accrualProfit >= 0 ? 'text-violet-500' : 'text-rose-500' }}" />
+            </div>
+            <div class="relative z-10">
+                <span class="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Accrual Profit</span>
+                <p class="text-3xl font-black mt-2 {{ $accrualProfit >= 0 ? 'text-violet-600' : 'text-rose-600' }}">Rp {{ number_format($accrualProfit, 0, ',', '.') }}</p>
+                <div class="flex items-center gap-2 mt-4 text-[10px] font-bold text-muted-foreground">
+                    <span class="text-rose-500">− Rp {{ number_format($outstandingDebt, 0, ',', '.') }}</span>
+                    <span>hutang bulan ini</span>
                 </div>
             </div>
         </div>

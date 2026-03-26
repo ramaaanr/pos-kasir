@@ -74,14 +74,31 @@ class ReportPage extends Component
         switch ($this->selectedReport) {
             case 'stok_realtime':
                 $filename = "Stok Realtime - " . date('Y-m-d H-i') . ".xlsx";
-                $data = $service->getRealtimeStockReport()->map(fn($p) => [
+                $sheet1 = $service->getRealtimeStockReport()->map(fn($p) => [
                     'Produk' => $p->nama,
                     'Kode' => $p->kode_produk,
-                    'Stok' => $p->total_stock,
+                    'Stok (Terkecil)' => $p->total_stock,
                     'Unit' => $p->base_unit,
                     'Status' => strtoupper($p->stock_status)
                 ])->toArray();
-                break;
+
+                $sheet2 = $service->getRealtimeBatchReport()->map(fn($b) => [
+                    'Kode Batch' => $b->batch_code,
+                    'Tanggal Masuk' => $b->tanggal_masuk->format('d/m/Y'),
+                    'Produk' => $b->product->nama,
+                    'Kode' => $b->product->kode_produk,
+                    'Stok Unit Masuk' => (float)$b->qty_masuk_original,
+                    'Unit Masuk' => $b->input_unit_name,
+                    'Stok Terkecil (Sisa)' => (float)$b->qty_sisa_base,
+                    'Unit Terkecil' => $b->product->base_unit,
+                    'Status' => $b->qty_sisa_base > 0 ? 'AKTIF' : 'HABIS'
+                ])->toArray();
+
+                $data = [
+                    'Stok per Produk' => $sheet1,
+                    'Stok per Batch' => $sheet2
+                ];
+                return ['data' => $data, 'filename' => $filename, 'is_multi_sheet' => true];
             case 'penjualan_periode':
                 $filename = "Penjualan Periode - " . date('Y-m-d', strtotime($this->startDate)) . " to " . date('Y-m-d', strtotime($this->endDate)) . ".xlsx";
                 $data = $service->getPeriodicSalesReport($this->startDate, $this->endDate)->map(fn($s) => [
@@ -209,7 +226,11 @@ class ReportPage extends Component
         $export = $this->prepareExportData();
         if (empty($export['data'])) return;
 
-        return Excel::download(new ReportExport($export['data']), $export['filename']);
+        $exportObject = isset($export['is_multi_sheet']) && $export['is_multi_sheet'] 
+            ? new \App\Exports\MultiSheetReportExport($export['data'])
+            : new \App\Exports\ReportExport($export['data']);
+
+        return Excel::download($exportObject, $export['filename']);
     }
 
     public function backupToLocal()
@@ -232,7 +253,11 @@ class ReportPage extends Component
                 mkdir($tempDir, 0755, true);
             }
 
-            $content = Excel::raw(new ReportExport($export['data']), \Maatwebsite\Excel\Excel::XLSX);
+            $exportObject = isset($export['is_multi_sheet']) && $export['is_multi_sheet'] 
+                ? new \App\Exports\MultiSheetReportExport($export['data'])
+                : new \App\Exports\ReportExport($export['data']);
+
+            $content = Excel::raw($exportObject, \Maatwebsite\Excel\Excel::XLSX);
             file_put_contents($tempPath, $content);
 
             if (!file_exists($tempPath)) {

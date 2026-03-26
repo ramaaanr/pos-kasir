@@ -275,7 +275,7 @@
                             <td class="px-6 py-4">
                                 <div class="flex flex-col leading-tight">
                                     <span class="font-mono font-bold text-primary">{{ $sale->invoice_number }}</span>
-                                    <span class="text-[10px] text-muted-foreground">{{ $sale->created_at->format('H:i') }}</span>
+                                    <span class="text-[10px] text-muted-foreground">{{ $sale->created_at->translatedFormat('d M Y, H:i') }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
@@ -332,25 +332,57 @@
                     <input type="text" wire:model.live.debounce.300ms="stockSearch" placeholder="Cari nama produk atau kode..." class="w-full bg-muted/50 border-none rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none">
                 </div>
             </div>
-            <div class="p-0 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+            <div class="p-0 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar relative">
+                {{-- Loading Overlay --}}
+                <div wire:loading wire:target="stockSearch, gotoPage" class="absolute inset-0 z-20 bg-card/40 backdrop-blur-[1px] flex items-center justify-center">
+                    <div class="flex flex-col items-center gap-2 bg-card/80 p-4 rounded-2xl border border-border/50 shadow-xl shadow-black/5 animate-in zoom-in-95 duration-200">
+                        <x-lucide-loader-2 class="w-5 h-5 text-primary animate-spin" />
+                        <span class="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] ml-1">Memuat...</span>
+                    </div>
+                </div>
+
                 @forelse($stockData as $product)
-                <div class="px-6 py-4 flex items-center justify-between hover:bg-muted/5 transition-colors border-b border-border/50 last:border-0">
-                    <div class="flex flex-col max-w-[70%]">
-                        <span class="font-bold text-sm text-foreground leading-tight truncate">{{ $product->nama }}</span>
-                        <span class="text-[10px] font-mono text-muted-foreground mt-0.5">{{ $product->kode_produk }}</span>
+                <div class="px-5 py-3.5 flex flex-col hover:bg-muted/5 transition-colors border-b border-border/50 last:border-0 gap-2.5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex flex-col max-w-[70%]">
+                            <span class="font-bold text-sm text-foreground leading-tight truncate">{{ $product->nama }}</span>
+                            <span class="text-[9px] font-mono text-muted-foreground mt-0.5 tracking-tighter">{{ $product->kode_produk }}</span>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="text-base font-black {{ ($product->batches_sum_qty_sisa_base ?? 0) <= 10 ? 'text-rose-600' : 'text-emerald-600 dark:text-emerald-500' }}">
+                                {{ number_format($product->batches_sum_qty_sisa_base ?? 0, 0, ',', '.') }}
+                            </span>
+                            <span class="text-[8px] font-bold uppercase text-muted-foreground tracking-wider">{{ $product->base_unit }}</span>
+                        </div>
                     </div>
-                    <div class="flex flex-col items-end">
-                        <span class="text-lg font-black {{ ($product->batches_sum_qty_sisa_base ?? 0) <= 10 ? 'text-rose-600' : 'text-emerald-600 dark:text-emerald-500' }}">
-                            {{ number_format($product->batches_sum_qty_sisa_base ?? 0, 0, ',', '.') }}
-                        </span>
-                        <span class="text-[9px] font-bold uppercase text-muted-foreground tracking-wider">{{ $product->base_unit }}</span>
+                    
+                    {{-- Ultra-Compact Batch List --}}
+                    @if($product->batches->count() > 0)
+                    <div class="space-y-1">
+                        <div class="grid grid-cols-1 gap-1">
+                            @foreach($product->batches as $batch)
+                            <div class="flex items-center justify-between px-2 py-1 rounded-md bg-muted/20 border border-border/30 text-[9px] group/batch">
+                                <div class="flex items-center gap-1.5 font-medium">
+                                    <span class="font-mono font-bold text-blue-600/80">{{ $batch->batch_code }}</span>
+                                    <span class="text-[8px] text-muted-foreground/60">{{ $batch->tanggal_masuk->format('d/m/y') }}</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-black text-foreground">{{ (float)$batch->qty_sisa_base }} <span class="text-[7px] text-muted-foreground">{{ $product->base_unit }}</span></span>
+                                    @if($batch->qty_masuk_original > 0)
+                                    <span class="text-[7px] opacity-40 italic hidden sm:inline">orig: {{ (float)$batch->qty_masuk_original }}{{ $batch->input_unit_name }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
                     </div>
+                    @endif
                 </div>
                 @empty
                 <div class="px-6 py-12 text-center text-muted-foreground">
                     <div class="flex flex-col items-center gap-2">
                         <x-lucide-box class="h-8 w-8 text-muted-foreground/30" />
-                        <p>Data stok tidak ditemukan</p>
+                        <p class="text-xs font-medium uppercase tracking-widest opacity-50">Stok tidak ditemukan</p>
                     </div>
                 </div>
                 @endforelse

@@ -34,4 +34,9 @@ class ProductBatch extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function adjustmentItems()
+    {
+        return $this->hasMany(StockAdjustmentItem::class, 'product_batch_id');
+    }
 }

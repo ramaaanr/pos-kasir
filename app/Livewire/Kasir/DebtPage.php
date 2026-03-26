@@ -57,7 +57,7 @@ class DebtPage extends Component
         if (!$this->selectedCustomerId) return;
 
         $this->activeDebts = Debt::where('customer_id', $this->selectedCustomerId)
-            ->whereIn('status', ['OPEN', 'PARTIAL'])
+            ->whereIn('status', ['OPEN', 'PARTIAL', 'PAID'])
             ->with(['sale', 'payments'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -132,7 +132,7 @@ class DebtPage extends Component
 
     public function render()
     {
-        $customers = Customer::where('total_debt', '>', 0)
+        $customers = Customer::whereHas('debts')
             ->where(function($q) {
                 $q->where('nama', 'like', '%' . $this->searchCustomer . '%')
                   ->orWhere('no_hp', 'like', '%' . $this->searchCustomer . '%');
