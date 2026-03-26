@@ -55,25 +55,14 @@ class StockAdjustmentList extends Component
         $this->showModal = false;
     }
 
-    // Detail Modal
+    // --- Wizard Logic ---
+    // Dummy properties for backward compatibility with stale client state
     public $showDetailModal = false;
     public $selectedAdjustmentId = null;
     public $adjustmentDetail = null;
 
-    // --- Wizard Logic ---
-
-    public function openDetailModal($id)
-    {
-        $this->selectedAdjustmentId = $id;
-        $this->adjustmentDetail = StockAdjustment::with(['user', 'items.batch.product'])->findOrFail($id);
-        $this->showDetailModal = true;
-    }
-
-    public function closeDetailModal()
-    {
-        $this->showDetailModal = false;
-        $this->adjustmentDetail = null;
-    }
+    public function openDetailModal($id) { /* Deprecated */ }
+    public function closeDetailModal() { $this->showDetailModal = false; }
 
     public function nextStep()
     {
@@ -194,8 +183,7 @@ class StockAdjustmentList extends Component
 
     public function render()
     {
-        $adjustments = StockAdjustment::with('user')
-            ->withCount('items')
+        $adjustments = StockAdjustment::with(['user', 'items.batch.product'])
             ->latest()
             ->paginate(10);
 

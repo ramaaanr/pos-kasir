@@ -38,7 +38,7 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h2 class="text-xl font-black 
-                                {{ $isShiftOverdue ? 'text-rose-950 dark:text-rose-100' : 'text-emerald-950 dark:text-emerald-500' }}">
+                                {{ $isShiftOverdue ? 'text-rose-950 dark:text-rose-500' : 'text-emerald-950 dark:text-emerald-500' }}">
                             {{ $isShiftOverdue ? 'Shift Segera Tutup!' : 'Shift Sedang Aktif' }}
                         </h2>
                         <span class="px-2 py-0.5 text-white text-[10px] font-black rounded-lg uppercase tracking-widest

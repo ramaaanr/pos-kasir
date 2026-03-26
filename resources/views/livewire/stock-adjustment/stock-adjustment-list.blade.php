@@ -16,41 +16,90 @@
     {{-- List Table --}}
     <div class="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-muted/50 border-b border-border">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead class="bg-muted/80 backdrop-blur-md border-b border-border sticky top-0 z-10 shadow-sm">
                     <tr>
-                        <th class="px-6 py-4 font-semibold text-foreground">Tanggal</th>
-                        <th class="px-6 py-4 font-semibold text-foreground">Reason</th>
-                        <th class="px-6 py-4 font-semibold text-foreground text-center">Total Item Batch</th>
-                        <th class="px-6 py-4 font-semibold text-foreground">Dibuat Oleh</th>
-                        <th class="px-6 py-4 text-right">Action</th>
+                        <th class="px-6 py-3 font-bold text-foreground uppercase tracking-wider text-xs w-1/4">Tanggal & Alasan</th>
+                        <th class="px-6 py-3 font-bold text-foreground uppercase tracking-wider text-xs w-2/5">Info Batch / Produk</th>
+                        <th class="px-6 py-3 font-bold text-foreground uppercase tracking-wider text-xs w-1/6">Selisih</th>
+                        <th class="px-6 py-3 font-bold text-foreground uppercase tracking-wider text-xs">Dibuat Oleh</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-border/50">
-                    @forelse($adjustments as $adj)
-                        <tr class="hover:bg-muted/30 transition-colors">
-                            <td class="px-6 py-4 text-foreground">{{ $adj->created_at->format('d M Y, H:i') }}</td>
-                            <td class="px-6 py-4 text-foreground font-medium">{{ $adj->reason }}</td>
-                            <td class="px-6 py-4 text-foreground text-center">
-                                <span class="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 font-bold text-xs">
-                                    {{ $adj->items_count }} Batch
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-muted-foreground flex items-center gap-2">
-                                <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                                    {{ substr($adj->user->name ?? '?', 0, 1) }}
+                <tbody class="divide-y divide-border/30">
+                    @forelse($adjustments as $index => $adj)
+                        @php $isEven = $index % 2 === 0; @endphp
+                        
+                        {{-- Group Header Row (Date & User) --}}
+                        <tr class="{{ $isEven ? 'bg-muted/40' : 'bg-background' }} border-t-2 border-border/60">
+                            <td class="px-6 pt-4 pb-1">
+                                <div class="flex items-center gap-2 text-primary font-bold text-[11px] uppercase tracking-widest">
+                                    <x-lucide-calendar class="w-3.5 h-3.5" />
+                                    {{ $adj->created_at->format('d M Y, H:i') }}
                                 </div>
-                                {{ $adj->user->name ?? 'Unknown' }}
                             </td>
-                            <td class="px-6 py-4 text-right">
-                                <button wire:click="openDetailModal({{ $adj->id }})" class="text-muted-foreground hover:text-primary transition-colors disabled:opacity-50" title="View Detail">
-                                    <x-lucide-eye class="w-5 h-5" />
-                                </button>
+                            <td class="px-6 pt-4 pb-1" colspan="2"></td>
+                            <td class="px-6 pt-4 pb-1">
+                                <div class="flex items-center gap-2 text-muted-foreground text-[11px] font-medium">
+                                    <div class="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                                        {{ substr($adj->user->name ?? '?', 0, 1) }}
+                                    </div>
+                                    {{ $adj->user->name ?? 'Unknown' }}
+                                </div>
                             </td>
                         </tr>
+
+                        {{-- Item Rows (Reason & Items) --}}
+                        @foreach($adj->items as $itemIndex => $item)
+                            @php $diff = $item->qty_after_base - $item->qty_before_base; @endphp
+                            <tr class="{{ $isEven ? 'bg-muted/40' : 'bg-background' }} hover:bg-primary/5 transition-colors group">
+                                <td class="px-6 py-2 align-top">
+                                    @if($itemIndex === 0)
+                                        <div class="flex flex-col">
+                                            <span class="text-foreground font-semibold text-sm leading-tight" title="{{ $adj->reason }}">
+                                                {{ $adj->reason }}
+                                            </span>
+                                            <span class="text-[10px] text-muted-foreground uppercase mt-1">Reason</span>
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-2">
+                                    <div class="flex items-start gap-3">
+                                        <div class="text-muted-foreground font-mono text-sm mt-0.5 select-none text-primary/40">↳</div>
+                                        <div>
+                                            <div class="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                                                {{ $item->batch->product->nama ?? 'Unknown Product' }}
+                                            </div>
+                                            <div class="flex items-center gap-2 mt-0.5">
+                                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-muted font-mono text-muted-foreground uppercase">
+                                                    {{ $item->batch->batch_code ?? '-' }}
+                                                </span>
+                                                <span class="text-[9px] text-muted-foreground italic">
+                                                    Stock: {{ $item->qty_before_base }} → {{ $item->qty_after_base }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-2">
+                                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg {{ $diff > 0 ? 'bg-green-500/10 text-green-600' : ($diff < 0 ? 'bg-red-500/10 text-red-600' : 'bg-muted text-muted-foreground') }} font-bold text-sm">
+                                        @if($diff > 0)
+                                            <x-lucide-trending-up class="w-3.5 h-3.5" />
+                                            +{{ $diff }}
+                                        @elseif($diff < 0)
+                                            <x-lucide-trending-down class="w-3.5 h-3.5" />
+                                            {{ $diff }}
+                                        @else
+                                            <x-lucide-minus class="w-3.5 h-3.5" />
+                                            0
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="px-6 py-2"></td>
+                            </tr>
+                        @endforeach
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-muted-foreground">
+                            <td colspan="4" class="px-6 py-12 text-center text-muted-foreground">
                                 <div class="flex flex-col items-center justify-center gap-2">
                                     <x-lucide-clipboard-list class="w-10 h-10 opacity-20" />
                                     <p>Belum ada riwayat adjustment</p>
@@ -281,73 +330,4 @@
     
     <x-toast />
 
-    {{-- Detail Modal --}}
-    <div
-        x-data="{ show: @entangle('showDetailModal') }"
-        x-show="show"
-        class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
-        style="display: none;"
-    >
-        <div class="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity" @click="show = false"></div>
-
-        <div class="relative w-full max-w-3xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            @if($adjustmentDetail)
-                <div class="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/30">
-                    <div>
-                        <h2 class="text-lg font-bold text-foreground flex items-center gap-2">
-                            <x-lucide-file-text class="w-5 h-5 text-primary" />
-                            Detail Stock Adjustment
-                        </h2>
-                        <p class="text-xs text-muted-foreground">{{ $adjustmentDetail->created_at->format('d M Y, H:i') }} • By {{ $adjustmentDetail->user->name ?? 'Unknown' }}</p>
-                    </div>
-                    <button wire:click="closeDetailModal" class="text-muted-foreground hover:text-foreground">
-                        <x-lucide-x class="w-5 h-5" />
-                    </button>
-                </div>
-
-                <div class="p-6 overflow-y-auto">
-                    {{-- Header Info --}}
-                    <div class="mb-6 p-4 rounded-xl bg-muted/20 border border-border">
-                        <span class="text-xs font-bold text-muted-foreground uppercase tracking-wider">Reason</span>
-                        <p class="text-foreground font-medium mt-1">{{ $adjustmentDetail->reason }}</p>
-                    </div>
-
-                    {{-- Items Table --}}
-                    <div class="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-                        <table class="w-full text-sm">
-                            <thead class="bg-muted/50 border-b border-border text-xs uppercase text-muted-foreground">
-                                <tr>
-                                    <th class="px-4 py-3 text-left">Produk</th>
-                                    <th class="px-4 py-3 text-left">Batch Code</th>
-                                    <th class="px-4 py-3 text-center">Stok Awal</th>
-                                    <th class="px-4 py-3 text-center">Stok Akhir</th>
-                                    <th class="px-4 py-3 text-right">Selisih</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-border/50">
-                                @foreach($adjustmentDetail->items as $item)
-                                    @php $diff = $item->qty_after_base - $item->qty_before_base; @endphp
-                                    <tr class="hover:bg-muted/10">
-                                        <td class="px-4 py-3 font-medium">{{ $item->batch->product->nama ?? '-' }}</td>
-                                        <td class="px-4 py-3 font-mono text-xs text-muted-foreground">{{ $item->batch->batch_code ?? '-' }}</td>
-                                        <td class="px-4 py-3 text-center text-muted-foreground">{{ $item->qty_before_base }}</td>
-                                        <td class="px-4 py-3 text-center font-bold">{{ $item->qty_after_base }}</td>
-                                        <td class="px-4 py-3 text-right font-bold {{ $diff > 0 ? 'text-green-500' : ($diff < 0 ? 'text-red-500' : 'text-muted-foreground') }}">
-                                            {{ $diff > 0 ? '+' : '' }}{{ $diff }}
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="px-6 py-4 border-t border-border bg-muted/30 flex justify-end">
-                    <button wire:click="closeDetailModal" class="px-4 py-2 text-sm font-semibold rounded-lg bg-muted text-foreground hover:bg-muted/80 transition-all">
-                        Tutup
-                    </button>
-                </div>
-            @endif
-        </div>
-    </div>
 </div>
